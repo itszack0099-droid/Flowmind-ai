@@ -1,6 +1,5 @@
-name: flowmind
+name: Flowmind
 description: FlowMind AI - Your Personal AI Mentor
-
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -10,29 +9,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  
-  # UI
+  cupertino_icons: ^1.0.6
   google_fonts: ^6.1.0
   smooth_page_indicator: ^1.1.0
   animate_do: ^3.3.4
-  flutter_svg: ^2.0.9
-  lottie: ^3.0.0
-  
-  # Navigation
   go_router: ^13.0.0
-  
-  # State Management
   flutter_riverpod: ^2.4.9
-  
-  # Storage & Auth
-  supabase_flutter: ^2.3.0
   shared_preferences: ^2.2.2
-  
-  # AI
   http: ^1.2.0
-  
-  # Utils
-  flutter_dotenv: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -43,4 +27,3 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-    - .env
