@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'time': '9:00 AM',
       'done': true,
       'color': AppColors.mint,
-      'icon': CupertinoIcons.atom,
+      'icon': CupertinoIcons.textbook,
     },
     {
       'title': 'Maths Practice',
