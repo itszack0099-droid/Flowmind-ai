@@ -19,25 +19,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<_OnboardingData> _pages = [
     _OnboardingData(
-      emoji: '🌪️',
+      icon: Icons.psychology_rounded,
       gradientColors: [Color(0xFF6B21A8), Color(0xFF0A0A12)],
       title: 'Dump Your\nBrain',
       highlightWord: 'Brain',
-      subtitle: 'Bolo ya likho kuch bhi — AI khud organize karta hai tumhara chaotic dimag',
+      subtitle: 'Speak or type anything — AI automatically organizes your chaotic thoughts into clear actions.',
     ),
     _OnboardingData(
-      emoji: '🗓️',
+      icon: Icons.calendar_today_rounded,
       gradientColors: [Color(0xFF1E3A5F), Color(0xFF0A0A12)],
       title: 'AI Plans\nYour Day',
       highlightWord: 'Day',
-      subtitle: 'Energy aur deadlines ke hisaab se AI perfect schedule banata hai — har roz',
+      subtitle: 'AI builds your perfect daily schedule based on your energy levels and deadlines — every single day.',
     ),
     _OnboardingData(
-      emoji: '🎮',
+      icon: Icons.trending_up_rounded,
       gradientColors: [Color(0xFF064E3B), Color(0xFF0A0A12)],
       title: 'Level Up\nDaily',
       highlightWord: 'Up',
-      subtitle: 'Productivity ko ek game banao — XP earn karo, streaks banao, legend bano',
+      subtitle: 'Turn productivity into a game — earn XP, build streaks, and become a legend.',
     ),
   ];
 
@@ -124,12 +124,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           alignment: Alignment.center,
                           child: Text(
                             _currentPage == _pages.length - 1
-                                ? 'Get Started 🚀'
-                                : 'Next →',
+                                ? 'Get Started'
+                                : 'Next',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ),
@@ -163,14 +164,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 }
 
 class _OnboardingData {
-  final String emoji;
+  final IconData icon;
   final List<Color> gradientColors;
   final String title;
   final String highlightWord;
   final String subtitle;
 
   _OnboardingData({
-    required this.emoji,
+    required this.icon,
     required this.gradientColors,
     required this.title,
     required this.highlightWord,
@@ -226,15 +227,28 @@ class _OnboardingPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 60),
+                const SizedBox(height: 80),
 
-                // Big emoji illustration
+                // Icon illustration — clean Material/Cupertino icon
                 FadeInDown(
                   duration: const Duration(milliseconds: 600),
                   child: Center(
-                    child: Text(
-                      data.emoji,
-                      style: const TextStyle(fontSize: 80),
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.08),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.12),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Icon(
+                        data.icon,
+                        size: 56,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
