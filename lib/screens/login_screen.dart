@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/orb_background.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,13 +32,14 @@ class _LoginScreenState extends State<LoginScreen> {
     await Future.delayed(const Duration(seconds: 2));
     setState(() => _isLoading = false);
     if (mounted) {
-      // Navigate to home — replace with go_router later
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Login successful!'),
           backgroundColor: AppColors.mint,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     }
@@ -57,7 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 60),
 
-                // Logo + App name
+                // Logo
                 FadeInDown(
                   duration: const Duration(milliseconds: 600),
                   child: Row(
@@ -73,7 +75,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             end: Alignment.bottomRight,
                           ),
                         ),
-                        child: const Icon(Icons.bolt, color: Colors.white, size: 22),
+                        child: const Icon(
+                          Icons.bolt,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Text(
@@ -123,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 40),
 
-                // Glass Card with form
+                // Glass form card
                 FadeInUp(
                   delay: const Duration(milliseconds: 200),
                   duration: const Duration(milliseconds: 700),
@@ -132,10 +138,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding: const EdgeInsets.all(24),
                     child: Column(
                       children: [
-                        // Username field
                         GlassTextField(
                           hint: 'User Name',
-                          prefixIcon: null,
                           suffixIcon: Icons.person_outline_rounded,
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
@@ -143,7 +147,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 16),
 
-                        // Password field
                         GlassTextField(
                           hint: 'Password',
                           suffixIcon: _obscurePassword
@@ -152,7 +155,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           obscureText: _obscurePassword,
                           controller: _passwordController,
                           onSuffixTap: () {
-                            setState(() => _obscurePassword = !_obscurePassword);
+                            setState(() =>
+                                _obscurePassword = !_obscurePassword);
                           },
                         ),
 
@@ -162,7 +166,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         Row(
                           children: [
                             GestureDetector(
-                              onTap: () => setState(() => _rememberMe = !_rememberMe),
+                              onTap: () => setState(
+                                  () => _rememberMe = !_rememberMe),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
                                 width: 22,
@@ -171,7 +176,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                   borderRadius: BorderRadius.circular(6),
                                   gradient: _rememberMe
                                       ? const LinearGradient(
-                                          colors: [AppColors.mint, AppColors.purple],
+                                          colors: [
+                                            AppColors.mint,
+                                            AppColors.purple
+                                          ],
                                           begin: Alignment.topLeft,
                                           end: Alignment.bottomRight,
                                         )
@@ -184,7 +192,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ),
                                 ),
                                 child: _rememberMe
-                                    ? const Icon(Icons.check, color: Colors.white, size: 14)
+                                    ? const Icon(Icons.check,
+                                        color: Colors.white, size: 14)
                                     : null,
                               ),
                             ),
@@ -193,7 +202,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               'Remember Me',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
-                                color: isDark ? AppColors.textLight : AppColors.textDark,
+                                color: isDark
+                                    ? AppColors.textLight
+                                    : AppColors.textDark,
                               ),
                             ),
                           ],
@@ -201,7 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 24),
 
-                        // Login Button
+                        // LOGIN button
                         SizedBox(
                           width: double.infinity,
                           height: 52,
@@ -218,7 +229,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Ink(
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
-                                  colors: [Color(0xFFFF4E1F), Color(0xFFFF7849)],
+                                  colors: [
+                                    Color(0xFFFF4E1F),
+                                    Color(0xFFFF7849)
+                                  ],
                                   begin: Alignment.centerLeft,
                                   end: Alignment.centerRight,
                                 ),
@@ -260,7 +274,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: isDark ? AppColors.textLight : AppColors.textDark,
+                                color: isDark
+                                    ? AppColors.textLight
+                                    : AppColors.textDark,
                               ),
                             ),
                           ),
@@ -290,7 +306,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           'OR',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
-                            color: isDark ? AppColors.mutedDark : AppColors.mutedLight,
+                            color: isDark
+                                ? AppColors.mutedDark
+                                : AppColors.mutedLight,
                             letterSpacing: 1.5,
                           ),
                         ),
@@ -308,7 +326,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 20),
 
-                // Google Sign In
+                // Google button
                 FadeInUp(
                   delay: const Duration(milliseconds: 400),
                   child: GlassCard(
@@ -320,17 +338,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         Container(
                           width: 22,
                           height: 22,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.white,
                           ),
                           child: const Center(
-                            child: Text('G',
-                                style: TextStyle(
-                                  color: Color(0xFF4285F4),
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 13,
-                                )),
+                            child: Text(
+                              'G',
+                              style: TextStyle(
+                                color: Color(0xFF4285F4),
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -339,7 +359,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: isDark ? AppColors.textLight : AppColors.textDark,
+                            color: isDark
+                                ? AppColors.textLight
+                                : AppColors.textDark,
                           ),
                         ),
                       ],
@@ -349,18 +371,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 30),
 
-                // Sign up link
+                // Signup link — UPDATED with navigation
                 FadeInUp(
                   delay: const Duration(milliseconds: 450),
                   child: Center(
                     child: GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SignupScreen(),
+                          ),
+                        );
+                      },
                       child: RichText(
                         text: TextSpan(
                           text: "Don't have an account? ",
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
-                            color: isDark ? AppColors.mutedDark : AppColors.mutedLight,
+                            color: isDark
+                                ? AppColors.mutedDark
+                                : AppColors.mutedLight,
                           ),
                           children: [
                             TextSpan(
