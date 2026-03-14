@@ -59,7 +59,6 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 60),
 
-                // Logo
                 FadeInDown(
                   duration: const Duration(milliseconds: 600),
                   child: Row(
@@ -68,10 +67,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-  borderRadius: BorderRadius.circular(12),
-  color: Colors.transparent,
-),
-                        child: Image.asset('assets/images/logo.png', width: 26, height: 26),,
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.transparent,
+                        ),
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          width: 40,
+                          height: 40,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -80,7 +82,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.textLight : AppColors.textDark,
+                          color: isDark
+                              ? AppColors.textLight
+                              : AppColors.textDark,
                         ),
                       ),
                     ],
@@ -89,7 +93,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 50),
 
-                // Title
                 FadeInDown(
                   delay: const Duration(milliseconds: 100),
                   duration: const Duration(milliseconds: 600),
@@ -98,7 +101,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 38,
                       fontWeight: FontWeight.w800,
-                      color: isDark ? AppColors.textLight : AppColors.textDark,
+                      color: isDark
+                          ? AppColors.textLight
+                          : AppColors.textDark,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -114,7 +119,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: isDark ? AppColors.mutedDark : AppColors.mutedLight,
+                      color: isDark
+                          ? AppColors.mutedDark
+                          : AppColors.mutedLight,
                       letterSpacing: 1.5,
                     ),
                   ),
@@ -122,7 +129,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 40),
 
-                // Glass form card
                 FadeInUp(
                   delay: const Duration(milliseconds: 200),
                   duration: const Duration(milliseconds: 700),
@@ -148,14 +154,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           obscureText: _obscurePassword,
                           controller: _passwordController,
                           onSuffixTap: () {
-                            setState(() =>
-                                _obscurePassword = !_obscurePassword);
+                            setState(
+                                () => _obscurePassword = !_obscurePassword);
                           },
                         ),
 
                         const SizedBox(height: 20),
 
-                        // Remember me
                         Row(
                           children: [
                             GestureDetector(
@@ -205,7 +210,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 24),
 
-                        // LOGIN button
                         SizedBox(
                           width: double.infinity,
                           height: 52,
@@ -258,7 +262,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 16),
 
-                        // Forgot password
                         Center(
                           child: TextButton(
                             onPressed: () {},
@@ -281,7 +284,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 32),
 
-                // OR divider
                 FadeInUp(
                   delay: const Duration(milliseconds: 350),
                   child: Row(
@@ -294,7 +296,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
                           'OR',
                           style: GoogleFonts.plusJakartaSans(
@@ -319,12 +322,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 20),
 
-                // Google button
                 FadeInUp(
                   delay: const Duration(milliseconds: 400),
                   child: GlassCard(
                     borderRadius: 14,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 14),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -364,7 +367,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 30),
 
-                // Signup link — UPDATED with navigation
                 FadeInUp(
                   delay: const Duration(milliseconds: 450),
                   child: Center(
