@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'time': '9:00 AM',
       'done': true,
       'color': AppColors.mint,
-      'icon': CupertinoIcons.textbook,
+      'icon': CupertinoIcons.book,
     },
     {
       'title': 'Maths Practice',
@@ -40,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'time': '11:00 AM',
       'done': false,
       'color': AppColors.purple,
-      'icon': CupertinoIcons.function,
+      'icon': CupertinoIcons.pencil,
     },
     {
       'title': 'AI Chat Session',
@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'time': '4:00 PM',
       'done': false,
       'color': AppColors.orangeRed,
-      'icon': CupertinoIcons.pencil,
+      'icon': CupertinoIcons.pencil_outline,
     },
   ];
 
@@ -78,7 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   duration: const Duration(milliseconds: 500),
                   child: Row(
                     children: [
-                      // Avatar
                       Container(
                         width: 46,
                         height: 46,
@@ -97,8 +96,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-
-                      // Greeting
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,8 +123,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       ),
-
-                      // Notification
                       Container(
                         width: 42,
                         height: 42,
@@ -163,10 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       ),
-
                       const SizedBox(width: 8),
-
-                      // Settings
                       Container(
                         width: 42,
                         height: 42,
@@ -218,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ? const LinearGradient(
                                     colors: [
                                       AppColors.mint,
-                                      AppColors.purple
+                                      AppColors.purple,
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
@@ -285,7 +277,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Row(
                           children: [
-                            // Level badge
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 6),
@@ -293,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 gradient: const LinearGradient(
                                   colors: [
                                     AppColors.mint,
-                                    AppColors.purple
+                                    AppColors.purple,
                                   ],
                                 ),
                                 borderRadius: BorderRadius.circular(20),
@@ -317,10 +308,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ],
                               ),
                             ),
-
                             const Spacer(),
-
-                            // Streak
                             Row(
                               children: [
                                 const Icon(
@@ -341,9 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 16),
-
                         Row(
                           mainAxisAlignment:
                               MainAxisAlignment.spaceBetween,
@@ -367,9 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 8),
-
                         ClipRRect(
                           borderRadius: BorderRadius.circular(10),
                           child: LinearProgressIndicator(
@@ -429,7 +413,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           _QuickAction(
                             icon: CupertinoIcons.chat_bubble_text,
                             label: 'AI\nMentor',
-                            color: const Color(0xFF38B6FF),
+                            color: Color(0xFF38B6FF),
                             onTap: () {},
                           ),
                           const SizedBox(width: 10),
@@ -493,29 +477,25 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             // TASK LIST
-      SliverList(
+SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final task = _tasks[index];
                   return FadeInUp(
-                    delay:
-                        Duration(milliseconds: 300 + (index * 80)),
+                    delay: Duration(milliseconds: 300 + (index * 80)),
                     duration: const Duration(milliseconds: 400),
                     child: Padding(
-                      padding:
-                          const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
                       child: GlassCard(
                         borderRadius: 16,
                         padding: const EdgeInsets.all(16),
                         child: Row(
                           children: [
-                            // Icon box
                             Container(
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                borderRadius:
-                                    BorderRadius.circular(13),
+                                borderRadius: BorderRadius.circular(13),
                                 color: (task['color'] as Color)
                                     .withOpacity(0.15),
                               ),
@@ -525,10 +505,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 size: 20,
                               ),
                             ),
-
                             const SizedBox(width: 14),
-
-                            // Task info
                             Expanded(
                               child: Column(
                                 crossAxisAlignment:
@@ -536,16 +513,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 children: [
                                   Text(
                                     task['title'],
-                                    style:
-                                        GoogleFonts.plusJakartaSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       color: isDark
                                           ? AppColors.textLight
                                           : AppColors.textDark,
                                       decoration: task['done']
-                                          ? TextDecoration
-                                              .lineThrough
+                                          ? TextDecoration.lineThrough
                                           : null,
                                       decorationColor:
                                           AppColors.mutedDark,
@@ -562,8 +537,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       const SizedBox(width: 4),
                                       Text(
                                         task['time'],
-                                        style: GoogleFonts
-                                            .plusJakartaSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 11,
                                           color: AppColors.mutedDark,
                                         ),
@@ -580,11 +554,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                       const SizedBox(width: 8),
                                       Text(
                                         task['subject'],
-                                        style: GoogleFonts
-                                            .plusJakartaSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 11,
-                                          color: (task['color']
-                                                  as Color)
+                                          color: (task['color'] as Color)
                                               .withOpacity(0.9),
                                           fontWeight: FontWeight.w600,
                                         ),
@@ -594,8 +566,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ],
                               ),
                             ),
-
-                            // Checkbox
                             GestureDetector(
                               onTap: () {
                                 setState(() {
@@ -604,8 +574,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 });
                               },
                               child: AnimatedContainer(
-                                duration:
-                                    const Duration(milliseconds: 200),
+                                duration: const Duration(milliseconds: 200),
                                 width: 28,
                                 height: 28,
                                 decoration: BoxDecoration(
@@ -614,7 +583,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ? const LinearGradient(
                                           colors: [
                                             AppColors.mint,
-                                            AppColors.purple
+                                            AppColors.purple,
                                           ],
                                         )
                                       : null,
@@ -686,8 +655,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'AI Tip of the Day',
@@ -704,10 +672,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 13,
                                   color: isDark
-                                      ? AppColors.textLight
-                                          .withOpacity(0.8)
-                                      : AppColors.textDark
-                                          .withOpacity(0.8),
+                                      ? AppColors.textLight.withOpacity(0.8)
+                                      : AppColors.textDark.withOpacity(0.8),
                                   height: 1.5,
                                 ),
                               ),
@@ -721,10 +687,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // BOTTOM PADDING
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 110),
-            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 110)),
           ],
         ),
       ),
@@ -732,7 +695,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// Quick Action Widget
 class _QuickAction extends StatelessWidget {
   final IconData icon;
   final String label;
