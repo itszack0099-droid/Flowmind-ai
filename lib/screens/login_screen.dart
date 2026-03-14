@@ -68,17 +68,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          gradient: const LinearGradient(
-                            colors: [AppColors.mint, AppColors.purple],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.bolt,
-                          color: Colors.white,
-                          size: 22,
+  borderRadius: BorderRadius.circular(12),
+  color: Colors.transparent,
+),
+                        child: Image.asset('assets/images/logo.png', width: 26, height: 26),,
                         ),
                       ),
                       const SizedBox(width: 10),
