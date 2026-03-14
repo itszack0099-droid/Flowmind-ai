@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/orb_background.dart';
 import 'signup_screen.dart';
+import 'main_nav.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -32,15 +33,8 @@ class _LoginScreenState extends State<LoginScreen> {
     await Future.delayed(const Duration(seconds: 2));
     setState(() => _isLoading = false);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Login successful!'),
-          backgroundColor: AppColors.mint,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainNav()),
       );
     }
   }
@@ -59,6 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 60),
 
+                // Logo
                 FadeInDown(
                   duration: const Duration(milliseconds: 600),
                   child: Row(
@@ -93,6 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 50),
 
+                // Title
                 FadeInDown(
                   delay: const Duration(milliseconds: 100),
                   duration: const Duration(milliseconds: 600),
@@ -129,6 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 40),
 
+                // Glass form card
                 FadeInUp(
                   delay: const Duration(milliseconds: 200),
                   duration: const Duration(milliseconds: 700),
@@ -137,6 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding: const EdgeInsets.all(24),
                     child: Column(
                       children: [
+                        // Username field
                         GlassTextField(
                           hint: 'User Name',
                           suffixIcon: Icons.person_outline_rounded,
@@ -146,6 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 16),
 
+                        // Password field
                         GlassTextField(
                           hint: 'Password',
                           suffixIcon: _obscurePassword
@@ -154,29 +153,32 @@ class _LoginScreenState extends State<LoginScreen> {
                           obscureText: _obscurePassword,
                           controller: _passwordController,
                           onSuffixTap: () {
-                            setState(
-                                () => _obscurePassword = !_obscurePassword);
+                            setState(() =>
+                                _obscurePassword = !_obscurePassword);
                           },
                         ),
 
                         const SizedBox(height: 20),
 
+                        // Remember me
                         Row(
                           children: [
                             GestureDetector(
                               onTap: () => setState(
                                   () => _rememberMe = !_rememberMe),
                               child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
+                                duration:
+                                    const Duration(milliseconds: 200),
                                 width: 22,
                                 height: 22,
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(6),
+                                  borderRadius:
+                                      BorderRadius.circular(6),
                                   gradient: _rememberMe
                                       ? const LinearGradient(
                                           colors: [
                                             AppColors.mint,
-                                            AppColors.purple
+                                            AppColors.purple,
                                           ],
                                           begin: Alignment.topLeft,
                                           end: Alignment.bottomRight,
@@ -190,8 +192,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ),
                                 ),
                                 child: _rememberMe
-                                    ? const Icon(Icons.check,
-                                        color: Colors.white, size: 14)
+                                    ? const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 14,
+                                      )
                                     : null,
                               ),
                             ),
@@ -210,6 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 24),
 
+                        // LOGIN button
                         SizedBox(
                           width: double.infinity,
                           height: 52,
@@ -219,7 +225,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
+                                borderRadius:
+                                    BorderRadius.circular(14),
                               ),
                               padding: EdgeInsets.zero,
                             ),
@@ -228,12 +235,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                 gradient: const LinearGradient(
                                   colors: [
                                     Color(0xFFFF4E1F),
-                                    Color(0xFFFF7849)
+                                    Color(0xFFFF7849),
                                   ],
                                   begin: Alignment.centerLeft,
                                   end: Alignment.centerRight,
                                 ),
-                                borderRadius: BorderRadius.circular(14),
+                                borderRadius:
+                                    BorderRadius.circular(14),
                               ),
                               child: Container(
                                 alignment: Alignment.center,
@@ -241,14 +249,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ? const SizedBox(
                                         width: 22,
                                         height: 22,
-                                        child: CircularProgressIndicator(
+                                        child:
+                                            CircularProgressIndicator(
                                           color: Colors.white,
                                           strokeWidth: 2.5,
                                         ),
                                       )
                                     : Text(
                                         'LOGIN',
-                                        style: GoogleFonts.plusJakartaSans(
+                                        style: GoogleFonts
+                                            .plusJakartaSans(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w700,
                                           color: Colors.white,
@@ -262,6 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 16),
 
+                        // Forgot password
                         Center(
                           child: TextButton(
                             onPressed: () {},
@@ -284,6 +295,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 32),
 
+                // OR divider
                 FadeInUp(
                   delay: const Duration(milliseconds: 350),
                   child: Row(
@@ -296,8 +308,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12),
                         child: Text(
                           'OR',
                           style: GoogleFonts.plusJakartaSans(
@@ -322,6 +334,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 20),
 
+                // Google button
                 FadeInUp(
                   delay: const Duration(milliseconds: 400),
                   child: GlassCard(
@@ -367,6 +380,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 30),
 
+                // Signup link
                 FadeInUp(
                   delay: const Duration(milliseconds: 450),
                   child: Center(
