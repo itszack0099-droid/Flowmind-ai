@@ -4,6 +4,8 @@ import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
+import '../services/groq_service.dart';
+import '../services/supabase_service.dart';
 
 class BrainDumpScreen extends StatefulWidget {
   const BrainDumpScreen({super.key});
@@ -17,49 +19,80 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
   bool _isProcessing = false;
   bool _showResults = false;
   bool _isRecording = false;
-
-  final List<Map<String, dynamic>> _results = [
-    {
-      'type': 'TASK',
-      'title': 'Study Physics Chapter 3',
-      'detail': 'Due tomorrow',
-      'color': AppColors.mint,
-      'icon': CupertinoIcons.book,
-    },
-    {
-      'type': 'TASK',
-      'title': 'Call Mom',
-      'detail': 'Personal',
-      'color': AppColors.purple,
-      'icon': CupertinoIcons.phone,
-    },
-    {
-      'type': 'SCHEDULE',
-      'title': 'Tuition at 3:00 PM',
-      'detail': 'Added to schedule',
-      'color': Color(0xFF38B6FF),
-      'icon': CupertinoIcons.clock,
-    },
-    {
-      'type': 'REMINDER',
-      'title': 'Submit Project',
-      'detail': 'Deadline: Friday',
-      'color': AppColors.orangeRed,
-      'icon': CupertinoIcons.bell,
-    },
-  ];
+  bool _isSaving = false;
+  Map<String, dynamic>? _results;
 
   void _processDump() async {
     if (_controller.text.trim().isEmpty) return;
+
     setState(() {
       _isProcessing = true;
       _showResults = false;
+      _results = null;
     });
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() {
-      _isProcessing = false;
-      _showResults = true;
-    });
+
+    final result = await GroqService.processBrainDump(_controller.text.trim());
+
+    if (mounted) {
+      setState(() {
+        _isProcessing = false;
+        _showResults = true;
+        _results = result;
+      });
+    }
+  }
+
+  Future<void> _acceptAll() async {
+    if (_results == null) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final tasks = _results!['tasks'] as List? ?? [];
+      for (final task in tasks) {
+        await SupabaseService.addTask(
+          title: task['title'] ?? 'Untitled Task',
+          subject: task['subject'] ?? 'General',
+          time: task['time'] ?? '',
+        );
+      }
+
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+          _showResults = false;
+          _results = null;
+          _controller.clear();
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${tasks.length} tasks saved successfully!',
+              style: GoogleFonts.plusJakartaSans(color: Colors.white),
+            ),
+            backgroundColor: AppColors.mint,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isSaving = false);
+    }
+  }
+
+  Color _getPriorityColor(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'high':
+        return AppColors.orangeRed;
+      case 'medium':
+        return AppColors.purple;
+      case 'low':
+        return AppColors.mint;
+      default:
+        return AppColors.mint;
+    }
   }
 
   @override
@@ -93,15 +126,9 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(13),
                         color: AppColors.mint.withOpacity(0.12),
-                        border: Border.all(
-                          color: AppColors.mint.withOpacity(0.25),
-                        ),
+                        border: Border.all(color: AppColors.mint.withOpacity(0.25)),
                       ),
-                      child: const Icon(
-                        CupertinoIcons.cloud_upload,
-                        color: AppColors.mint,
-                        size: 20,
-                      ),
+                      child: const Icon(CupertinoIcons.cloud_upload, color: AppColors.mint, size: 20),
                     ),
                     const SizedBox(width: 14),
                     Column(
@@ -133,7 +160,6 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
               // Input card
               FadeInUp(
                 delay: const Duration(milliseconds: 100),
-                duration: const Duration(milliseconds: 500),
                 child: GlassCard(
                   borderRadius: 22,
                   padding: const EdgeInsets.all(0),
@@ -162,9 +188,7 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                         decoration: BoxDecoration(
                           border: Border(
-                            top: BorderSide(
-                              color: Colors.white.withOpacity(0.07),
-                            ),
+                            top: BorderSide(color: Colors.white.withOpacity(0.07)),
                           ),
                         ),
                         child: Row(
@@ -217,10 +241,7 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
                                     ? const SizedBox(
                                         width: 18,
                                         height: 18,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2,
-                                        ),
+                                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                       )
                                     : Row(
                                         children: [
@@ -246,6 +267,7 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
                 ),
               ),
 
+              // Processing indicator
               if (_isProcessing) ...[
                 const SizedBox(height: 20),
                 FadeIn(
@@ -273,118 +295,213 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
                 ),
               ],
 
-              if (_showResults) ...[
+              // Results
+              if (_showResults && _results != null) ...[
                 const SizedBox(height: 24),
-                FadeInUp(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'AI Organized This',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.textLight : AppColors.textDark,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: AppColors.mint.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.mint.withOpacity(0.3)),
-                        ),
-                        child: Text(
-                          '${_results.length} Items',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.mint,
+
+                // Tasks section
+                if ((_results!['tasks'] as List?)?.isNotEmpty == true) ...[
+                  FadeInUp(
+                    child: _SectionHeader(
+                      icon: CupertinoIcons.checkmark_circle,
+                      title: 'Tasks',
+                      count: (_results!['tasks'] as List).length,
+                      color: AppColors.mint,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ...(_results!['tasks'] as List).asMap().entries.map((e) {
+                    final task = e.value as Map<String, dynamic>;
+                    final priority = task['priority'] ?? 'medium';
+                    final color = _getPriorityColor(priority);
+                    return FadeInUp(
+                      delay: Duration(milliseconds: e.key * 60),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: GlassCard(
+                          borderRadius: 14,
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  color: color.withOpacity(0.15),
+                                ),
+                                child: Icon(CupertinoIcons.checkmark_circle, color: color, size: 18),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      task['title'] ?? '',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark ? AppColors.textLight : AppColors.textDark,
+                                      ),
+                                    ),
+                                    if ((task['subject'] ?? '').isNotEmpty)
+                                      Text(
+                                        task['subject'],
+                                        style: GoogleFonts.plusJakartaSans(fontSize: 11, color: AppColors.mutedDark),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: color.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  priority.toUpperCase(),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: color,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ],
+                    );
+                  }),
+                ],
+
+                // Schedule section
+                if ((_results!['schedule'] as List?)?.isNotEmpty == true) ...[
+                  const SizedBox(height: 16),
+                  FadeInUp(
+                    child: _SectionHeader(
+                      icon: CupertinoIcons.calendar,
+                      title: 'Schedule',
+                      count: (_results!['schedule'] as List).length,
+                      color: AppColors.purple,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                ...List.generate(_results.length, (index) {
-                  final item = _results[index];
-                  return FadeInUp(
-                    delay: Duration(milliseconds: index * 80),
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: GlassCard(
-                        borderRadius: 16,
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: (item['color'] as Color).withOpacity(0.15),
+                  const SizedBox(height: 10),
+                  ...(_results!['schedule'] as List).asMap().entries.map((e) {
+                    final event = e.value as Map<String, dynamic>;
+                    return FadeInUp(
+                      delay: Duration(milliseconds: e.key * 60),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: GlassCard(
+                          borderRadius: 14,
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  color: AppColors.purple.withOpacity(0.15),
+                                ),
+                                child: const Icon(CupertinoIcons.clock, color: AppColors.purple, size: 18),
                               ),
-                              child: Icon(item['icon'] as IconData, color: item['color'] as Color, size: 20),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item['title'],
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark ? AppColors.textLight : AppColors.textDark,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      event['event'] ?? '',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark ? AppColors.textLight : AppColors.textDark,
+                                      ),
                                     ),
-                                  ),
-                                  Text(
-                                    item['detail'],
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 12,
-                                      color: isDark ? AppColors.mutedDark : AppColors.mutedLight,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: (item['color'] as Color).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                item['type'],
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w700,
-                                  color: item['color'] as Color,
-                                  letterSpacing: 0.8,
+                                    if ((event['time'] ?? '').isNotEmpty)
+                                      Text(
+                                        event['time'],
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 11,
+                                          color: AppColors.purple,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
+                    );
+                  }),
+                ],
+
+                // AI Suggestion
+                if ((_results!['ai_suggestion'] ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  FadeInUp(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.mint.withOpacity(0.15),
+                            AppColors.purple.withOpacity(0.15),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.mint.withOpacity(0.25)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(CupertinoIcons.lightbulb, color: AppColors.mint, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'AI Suggestion',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.mint,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _results!['ai_suggestion'] ?? '',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    color: isDark ? AppColors.textLight.withOpacity(0.85) : AppColors.textDark.withOpacity(0.85),
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  );
-                }),
-                const SizedBox(height: 16),
+                  ),
+                ],
+
+                const SizedBox(height: 20),
+
+                // Accept All button
                 FadeInUp(
-                  delay: const Duration(milliseconds: 350),
                   child: SizedBox(
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _showResults = false;
-                          _controller.clear();
-                        });
-                      },
+                      onPressed: _isSaving ? null : _acceptAll,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
@@ -398,21 +515,27 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
                         ),
                         child: Container(
                           alignment: Alignment.center,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(CupertinoIcons.checkmark_circle, color: Colors.white, size: 18),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Accept All & Save',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                          child: _isSaving
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(CupertinoIcons.checkmark_circle, color: Colors.white, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Save All Tasks',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
-                          ),
                         ),
                       ),
                     ),
@@ -425,6 +548,46 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final int count;
+  final Color color;
+
+  const _SectionHeader({required this.icon, required this.title, required this.count, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 18),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: isDark ? AppColors.textLight : AppColors.textDark,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            '$count',
+            style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+          ),
+        ),
+      ],
     );
   }
 }

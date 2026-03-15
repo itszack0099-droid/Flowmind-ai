@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import '../services/groq_service.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -16,10 +17,13 @@ class _AiChatScreenState extends State<AiChatScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _isTyping = false;
 
+  // Chat history for context
+  final List<Map<String, String>> _history = [];
+
   final List<Map<String, dynamic>> _messages = [
     {
       'role': 'ai',
-      'text': 'Hello! I\'m your AI Mentor. I\'m here to help you with studies, career advice, planning, or anything else on your mind. What would you like to work on today?',
+      'text': 'Hello! I am your AI Mentor. I am here to help you with studies, career advice, planning, or anything else on your mind. What would you like to work on today?',
       'time': '10:00 AM',
     },
   ];
@@ -28,31 +32,43 @@ class _AiChatScreenState extends State<AiChatScreen> {
     'Help me study',
     'Plan my day',
     'Career advice',
-    'I\'m feeling stuck',
+    'I am feeling stuck',
   ];
 
   void _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
+
+    final time = TimeOfDay.now().format(context);
+
     setState(() {
-      _messages.add({
-        'role': 'user',
-        'text': text,
-        'time': TimeOfDay.now().format(context),
-      });
+      _messages.add({'role': 'user', 'text': text, 'time': time});
+      _history.add({'role': 'user', 'content': text});
       _isTyping = true;
       _controller.clear();
     });
+
     _scrollToBottom();
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() {
-      _isTyping = false;
-      _messages.add({
-        'role': 'ai',
-        'text': 'That\'s a great question! Based on what you\'ve shared, I\'d recommend breaking this down into smaller steps. Start with the most important task first and build momentum from there. Would you like me to create a detailed plan for you?',
-        'time': TimeOfDay.now().format(context),
+
+    // Get real AI response from Groq
+    final response = await GroqService.chat(
+      userMessage: text,
+      history: _history.length > 10
+          ? _history.sublist(_history.length - 10)
+          : _history,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isTyping = false;
+        _messages.add({
+          'role': 'ai',
+          'text': response,
+          'time': TimeOfDay.now().format(context),
+        });
+        _history.add({'role': 'assistant', 'content': response});
       });
-    });
-    _scrollToBottom();
+      _scrollToBottom();
+    }
   }
 
   void _scrollToBottom() {
@@ -64,6 +80,18 @@ class _AiChatScreenState extends State<AiChatScreen> {
           curve: Curves.easeOut,
         );
       }
+    });
+  }
+
+  void _clearChat() {
+    setState(() {
+      _messages.clear();
+      _history.clear();
+      _messages.add({
+        'role': 'ai',
+        'text': 'Chat cleared. How can I help you today?',
+        'time': TimeOfDay.now().format(context),
+      });
     });
   }
 
@@ -139,7 +167,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                'Online — Always ready',
+                                _isTyping ? 'Thinking...' : 'Online — Always ready',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 11,
                                   color: AppColors.mint,
@@ -150,10 +178,22 @@ class _AiChatScreenState extends State<AiChatScreen> {
                         ],
                       ),
                     ),
-                    Icon(
-                      CupertinoIcons.ellipsis,
-                      color: isDark ? AppColors.mutedDark : AppColors.mutedLight,
-                      size: 20,
+                    GestureDetector(
+                      onTap: _clearChat,
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.white.withOpacity(0.06),
+                          border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        ),
+                        child: Icon(
+                          CupertinoIcons.trash,
+                          color: isDark ? AppColors.mutedDark : AppColors.mutedLight,
+                          size: 16,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -165,7 +205,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
               child: ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                itemCount: _messages.length + (_isTyping ? 1 : 0) + (_messages.length == 1 ? 1 : 0),
+                itemCount: _messages.length +
+                    (_isTyping ? 1 : 0) +
+                    (_messages.length == 1 ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (_messages.length == 1 && index == 1) {
                     return _buildSuggestions();
@@ -174,15 +216,20 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   if (_isTyping && msgIndex == _messages.length) {
                     return _buildTypingIndicator();
                   }
-                  if (msgIndex < 0 || msgIndex >= _messages.length) return const SizedBox();
+                  if (msgIndex < 0 || msgIndex >= _messages.length) {
+                    return const SizedBox();
+                  }
                   final msg = _messages[msgIndex];
                   final isAI = msg['role'] == 'ai';
+
                   return FadeInUp(
                     duration: const Duration(milliseconds: 300),
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 14),
                       child: Row(
-                        mainAxisAlignment: isAI ? MainAxisAlignment.start : MainAxisAlignment.end,
+                        mainAxisAlignment: isAI
+                            ? MainAxisAlignment.start
+                            : MainAxisAlignment.end,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           if (isAI) ...[
@@ -191,7 +238,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
                               height: 30,
                               decoration: const BoxDecoration(
                                 shape: BoxShape.circle,
-                                gradient: LinearGradient(colors: [AppColors.mint, AppColors.purple]),
+                                gradient: LinearGradient(
+                                  colors: [AppColors.mint, AppColors.purple],
+                                ),
                               ),
                               child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 14),
                             ),
@@ -223,7 +272,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    msg['text'],
+                                    msg['text']!,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
                                       color: isAI
@@ -234,10 +283,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    msg['time'],
+                                    msg['time']!,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 10,
-                                      color: isAI ? AppColors.mutedDark : Colors.white.withOpacity(0.6),
+                                      color: isAI
+                                          ? AppColors.mutedDark
+                                          : Colors.white.withOpacity(0.6),
                                     ),
                                   ),
                                 ],
@@ -256,7 +307,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.white.withOpacity(0.07))),
+                border: Border(
+                  top: BorderSide(color: Colors.white.withOpacity(0.07)),
+                ),
                 color: isDark ? AppColors.bgDark : AppColors.bgLight,
               ),
               child: Row(
@@ -289,6 +342,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
                           fontSize: 14,
                           color: isDark ? AppColors.textLight : AppColors.textDark,
                         ),
+                        maxLines: 4,
+                        minLines: 1,
                         decoration: InputDecoration(
                           hintText: 'Ask anything...',
                           hintStyle: GoogleFonts.plusJakartaSans(
@@ -296,7 +351,10 @@ class _AiChatScreenState extends State<AiChatScreen> {
                             color: isDark ? AppColors.mutedDark : AppColors.mutedLight,
                           ),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                         ),
                         onSubmitted: _sendMessage,
                       ),
