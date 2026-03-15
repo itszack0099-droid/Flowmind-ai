@@ -36,6 +36,12 @@ jobs:
           cp temp_project/analysis_options.yaml ./analysis_options.yaml || true
           rm -rf temp_project
 
+      - name: Add Internet Permission
+        run: |
+          sed -i 's/<\/manifest>/    <uses-permission android:name="android.permission.INTERNET"\/>\n<\/manifest>/' android/app/src/main/AndroidManifest.xml
+          echo "AndroidManifest.xml updated:"
+          cat android/app/src/main/AndroidManifest.xml
+
       - name: Create assets directory
         run: mkdir -p assets/images
 
