@@ -5,15 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'theme/app_theme.dart';
 import 'screens/splash_screen.dart';
 
-const String supabaseUrl = String.fromEnvironment(
-  'SUPABASE_URL',
-  defaultValue: 'https://siujmsbmvwxxbdhlihgd.supabase.co',
-);
+const String supabaseUrl = 'https://siujmsbmvwxxbdhlihgd.supabase.co';
 
-const String supabaseAnonKey = String.fromEnvironment(
-  'SUPABASE_ANON_KEY',
-  defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpdWptc2Jtdnd4eGJkaGxpaGdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NDQ2MDksImV4cCI6MjA4OTEyMDYwOX0.WlRm9ySc6huXd7018ESMTtkKS4XLmgBszNO0yvoG2DY',
-);
+const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpdWptc2Jtdnd4eGJkaGxpaGdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NDQ2MDksImV4cCI6MjA4OTEyMDYwOX0.WlRm9ySc6huXd7018ESMTtkKS4XLmgBszNO0yvoG2DY';
 
 final themeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.dark);
 
