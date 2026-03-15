@@ -1,52 +1,110 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'theme/app_theme.dart';
-import 'screens/splash_screen.dart';
+name: Build FlowMind APK
 
-const String supabaseUrl = 'https://siujmsbmvwxxbdhlihgd.supabase.co';
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
 
-const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpdWptc2Jtdnd4eGJkaGxpaGdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NDQ2MDksImV4cCI6MjA4OTEyMDYwOX0.WlRm9ySc6huXd7018ESMTtkKS4XLmgBszNO0yvoG2DY';
+jobs:
+  build-apk:
+    name: Build Android APK
+    runs-on: ubuntu-latest
 
-final themeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.dark);
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-  await Supabase.initialize(
-    url: supabaseUrl,
-    anonKey: supabaseAnonKey,
-  );
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+          cache: true
 
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-    ),
-  );
+      - name: Create Flutter project scaffold
+        run: |
+          flutter create --org com.flowmind --project-name flowmind temp_project
+          cp -r temp_project/android ./android
+          cp -r temp_project/ios ./ios
+          cp -r temp_project/web ./web
+          cp temp_project/analysis_options.yaml ./analysis_options.yaml || true
+          rm -rf temp_project
 
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+      - name: Add Internet Permission
+        run: |
+          sed -i 's/<\/manifest>/    <uses-permission android:name="android.permission.INTERNET"\/>\n<\/manifest>/' android/app/src/main/AndroidManifest.xml
+          echo "AndroidManifest.xml updated:"
+          cat android/app/src/main/AndroidManifest.xml
 
-  runApp(const ProviderScope(child: FlowMindApp()));
-}
+      - name: Create assets directory
+        run: mkdir -p assets/images
 
-class FlowMindApp extends ConsumerWidget {
-  const FlowMindApp({super.key});
+      - name: Install ImageMagick
+        run: sudo apt-get install -y imagemagick
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeProvider);
-    return MaterialApp(
-      title: 'FlowMind AI',
-      debugShowCheckedModeBanner: false,
-      themeMode: themeMode,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      home: const SplashScreen(),
-    );
-  }
-}
+      - name: Set App Icon
+        run: |
+          mkdir -p android/app/src/main/res/mipmap-hdpi
+          mkdir -p android/app/src/main/res/mipmap-mdpi
+          mkdir -p android/app/src/main/res/mipmap-xhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
+          convert assets/images/logo.png -resize 72x72 android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+          convert assets/images/logo.png -resize 48x48 android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+          convert assets/images/logo.png -resize 96x96 android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          convert assets/images/logo.png -resize 144x144 android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          convert assets/images/logo.png -resize 192x192 android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          convert assets/images/logo.png -resize 72x72 android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png
+          convert assets/images/logo.png -resize 48x48 android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
+          convert assets/images/logo.png -resize 96x96 android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
+          convert assets/images/logo.png -resize 144x144 android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
+          convert assets/images/logo.png -resize 192x192 android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
+
+      - name: Create .env file
+        run: |
+          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" > .env
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env
+          echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Analyze Code
+        run: flutter analyze --no-fatal-infos
+        continue-on-error: true
+
+      - name: Build Release APK
+        run: |
+          flutter build apk --release --no-tree-shake-icons \
+            --dart-define=GROQ_API_KEY=${{ secrets.GROQ_API_KEY }} \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Build Split APKs
+        run: |
+          flutter build apk --split-per-abi --release --no-tree-shake-icons \
+            --dart-define=GROQ_API_KEY=${{ secrets.GROQ_API_KEY }} \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+        continue-on-error: true
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FlowMind-APK-${{ github.run_number }}
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+          retention-days: 30
+
+      - name: Show APK Size
+        run: |
+          echo "Build Successful!"
+          ls -lh build/app/outputs/flutter-apk/*.apk
