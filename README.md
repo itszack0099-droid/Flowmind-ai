@@ -1,4 +1,4 @@
-# FlowMind AI ⚡
+.# FlowMind AI ⚡
 ### Your Personal AI Mentor for Students
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.19-blue?logo=flutter)
