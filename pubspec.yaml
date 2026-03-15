@@ -1,4 +1,4 @@
-name: Flowmind
+name: flowmind
 description: FlowMind AI - Your Personal AI Mentor
 publish_to: 'none'
 version: 1.0.0+1
@@ -17,6 +17,7 @@ dependencies:
   flutter_riverpod: ^2.4.9
   shared_preferences: ^2.2.2
   http: ^1.2.0
+  supabase_flutter: ^2.3.0
 
 dev_dependencies:
   flutter_test:

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import '../services/supabase_service.dart';
 import 'onboarding_screen.dart';
+import 'main_nav.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -50,15 +52,26 @@ class _SplashScreenState extends State<SplashScreen>
 
     Future.delayed(const Duration(milliseconds: 2800), () {
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const OnboardingScreen(),
-            transitionsBuilder: (_, anim, __, child) {
-              return FadeTransition(opacity: anim, child: child);
-            },
-            transitionDuration: const Duration(milliseconds: 600),
-          ),
-        );
+        // Check if user is already logged in
+        if (SupabaseService.isLoggedIn) {
+          Navigator.of(context).pushReplacement(
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const MainNav(),
+              transitionsBuilder: (_, anim, __, child) =>
+                  FadeTransition(opacity: anim, child: child),
+              transitionDuration: const Duration(milliseconds: 600),
+            ),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const OnboardingScreen(),
+              transitionsBuilder: (_, anim, __, child) =>
+                  FadeTransition(opacity: anim, child: child),
+              transitionDuration: const Duration(milliseconds: 600),
+            ),
+          );
+        }
       }
     });
   }
@@ -74,7 +87,6 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // Dark gradient background
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -84,8 +96,6 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
           ),
-
-          // Neon mint glow center
           Center(
             child: Container(
               width: 320,
@@ -93,16 +103,11 @@ class _SplashScreenState extends State<SplashScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [
-                    AppColors.mint.withOpacity(0.08),
-                    Colors.transparent,
-                  ],
+                  colors: [AppColors.mint.withOpacity(0.08), Colors.transparent],
                 ),
               ),
             ),
           ),
-
-          // Purple top-left orb
           Positioned(
             top: -120,
             left: -100,
@@ -112,16 +117,11 @@ class _SplashScreenState extends State<SplashScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [
-                    AppColors.purpleOrb.withOpacity(0.4),
-                    Colors.transparent,
-                  ],
+                  colors: [AppColors.purpleOrb.withOpacity(0.4), Colors.transparent],
                 ),
               ),
             ),
           ),
-
-          // Bottom right orange orb
           Positioned(
             bottom: -100,
             right: -80,
@@ -131,16 +131,11 @@ class _SplashScreenState extends State<SplashScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [
-                    AppColors.orangeOrb.withOpacity(0.3),
-                    Colors.transparent,
-                  ],
+                  colors: [AppColors.orangeOrb.withOpacity(0.3), Colors.transparent],
                 ),
               ),
             ),
           ),
-
-          // Main content
           Center(
             child: AnimatedBuilder(
               animation: _controller,
@@ -148,7 +143,6 @@ class _SplashScreenState extends State<SplashScreen>
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Logo image with glow
                     FadeTransition(
                       opacity: _fadeAnim,
                       child: ScaleTransition(
@@ -181,10 +175,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 28),
-
-                    // App name
                     FadeTransition(
                       opacity: _fadeAnim,
                       child: RichText(
@@ -212,10 +203,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 10),
-
-                    // Tagline
                     FadeTransition(
                       opacity: _taglineFade,
                       child: Text(
@@ -228,10 +216,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 60),
-
-                    // Loading dots animation
                     FadeTransition(
                       opacity: _taglineFade,
                       child: _LoadingDots(),
@@ -241,8 +226,6 @@ class _SplashScreenState extends State<SplashScreen>
               },
             ),
           ),
-
-          // Bottom powered by
           Positioned(
             bottom: 44,
             left: 0,
@@ -294,14 +277,12 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-// Animated loading dots widget
 class _LoadingDots extends StatefulWidget {
   @override
   State<_LoadingDots> createState() => _LoadingDotsState();
 }
 
-class _LoadingDotsState extends State<_LoadingDots>
-    with TickerProviderStateMixin {
+class _LoadingDotsState extends State<_LoadingDots> with TickerProviderStateMixin {
   late List<AnimationController> _dotControllers;
   late List<Animation<double>> _dotAnims;
 
@@ -310,33 +291,23 @@ class _LoadingDotsState extends State<_LoadingDots>
     super.initState();
     _dotControllers = List.generate(
       3,
-      (i) => AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 600),
-      ),
+      (i) => AnimationController(vsync: this, duration: const Duration(milliseconds: 600)),
     );
-
     _dotAnims = _dotControllers.map((c) {
       return Tween<double>(begin: 0.3, end: 1.0).animate(
         CurvedAnimation(parent: c, curve: Curves.easeInOut),
       );
     }).toList();
-
-    // Staggered start
     for (int i = 0; i < 3; i++) {
       Future.delayed(Duration(milliseconds: i * 200), () {
-        if (mounted) {
-          _dotControllers[i].repeat(reverse: true);
-        }
+        if (mounted) _dotControllers[i].repeat(reverse: true);
       });
     }
   }
 
   @override
   void dispose() {
-    for (final c in _dotControllers) {
-      c.dispose();
-    }
+    for (final c in _dotControllers) c.dispose();
     super.dispose();
   }
 
@@ -347,17 +318,15 @@ class _LoadingDotsState extends State<_LoadingDots>
       children: List.generate(3, (i) {
         return AnimatedBuilder(
           animation: _dotAnims[i],
-          builder: (context, _) {
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.mint.withOpacity(_dotAnims[i].value),
-              ),
-            );
-          },
+          builder: (context, _) => Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.mint.withOpacity(_dotAnims[i].value),
+            ),
+          ),
         );
       }),
     );

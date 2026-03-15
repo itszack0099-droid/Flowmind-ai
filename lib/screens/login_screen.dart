@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/orb_background.dart';
+import '../services/supabase_service.dart';
 import 'signup_screen.dart';
 import 'main_nav.dart';
 
@@ -20,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _rememberMe = true;
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -29,13 +32,38 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleLogin() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() => _isLoading = false);
-    if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainNav()),
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
+      setState(() => _errorMessage = 'Please fill in all fields');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await SupabaseService.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
+
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainNav()),
+        );
+      }
+    } on AuthException catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.message;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Something went wrong. Please try again.';
+      });
     }
   }
 
@@ -53,7 +81,6 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 60),
 
-                // Logo
                 FadeInDown(
                   duration: const Duration(milliseconds: 600),
                   child: Row(
@@ -65,11 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(12),
                           color: Colors.transparent,
                         ),
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          width: 40,
-                          height: 40,
-                        ),
+                        child: Image.asset('assets/images/logo.png', width: 40, height: 40),
                       ),
                       const SizedBox(width: 10),
                       Text(
@@ -77,9 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: isDark
-                              ? AppColors.textLight
-                              : AppColors.textDark,
+                          color: isDark ? AppColors.textLight : AppColors.textDark,
                         ),
                       ),
                     ],
@@ -88,18 +109,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 50),
 
-                // Title
                 FadeInDown(
                   delay: const Duration(milliseconds: 100),
-                  duration: const Duration(milliseconds: 600),
                   child: Text(
                     'Login',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 38,
                       fontWeight: FontWeight.w800,
-                      color: isDark
-                          ? AppColors.textLight
-                          : AppColors.textDark,
+                      color: isDark ? AppColors.textLight : AppColors.textDark,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -109,15 +126,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 FadeInDown(
                   delay: const Duration(milliseconds: 150),
-                  duration: const Duration(milliseconds: 600),
                   child: Text(
                     'WELCOME BACK! PLEASE LOGIN TO YOUR ACCOUNT',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: isDark
-                          ? AppColors.mutedDark
-                          : AppColors.mutedLight,
+                      color: isDark ? AppColors.mutedDark : AppColors.mutedLight,
                       letterSpacing: 1.5,
                     ),
                   ),
@@ -125,26 +139,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 40),
 
-                // Glass form card
                 FadeInUp(
                   delay: const Duration(milliseconds: 200),
-                  duration: const Duration(milliseconds: 700),
                   child: GlassCard(
                     borderRadius: 24,
                     padding: const EdgeInsets.all(24),
                     child: Column(
                       children: [
-                        // Username field
                         GlassTextField(
-                          hint: 'User Name',
-                          suffixIcon: Icons.person_outline_rounded,
+                          hint: 'Email Address',
+                          suffixIcon: Icons.email_outlined,
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                         ),
 
                         const SizedBox(height: 16),
 
-                        // Password field
                         GlassTextField(
                           hint: 'Password',
                           suffixIcon: _obscurePassword
@@ -152,51 +162,51 @@ class _LoginScreenState extends State<LoginScreen> {
                               : Icons.visibility_outlined,
                           obscureText: _obscurePassword,
                           controller: _passwordController,
-                          onSuffixTap: () {
-                            setState(() =>
-                                _obscurePassword = !_obscurePassword);
-                          },
+                          onSuffixTap: () => setState(() => _obscurePassword = !_obscurePassword),
                         ),
+
+                        // Error message
+                        if (_errorMessage != null) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.orangeRed.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppColors.orangeRed.withOpacity(0.3)),
+                            ),
+                            child: Text(
+                              _errorMessage!,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                color: AppColors.orangeRed,
+                              ),
+                            ),
+                          ),
+                        ],
 
                         const SizedBox(height: 20),
 
-                        // Remember me
                         Row(
                           children: [
                             GestureDetector(
-                              onTap: () => setState(
-                                  () => _rememberMe = !_rememberMe),
+                              onTap: () => setState(() => _rememberMe = !_rememberMe),
                               child: AnimatedContainer(
-                                duration:
-                                    const Duration(milliseconds: 200),
+                                duration: const Duration(milliseconds: 200),
                                 width: 22,
                                 height: 22,
                                 decoration: BoxDecoration(
-                                  borderRadius:
-                                      BorderRadius.circular(6),
+                                  borderRadius: BorderRadius.circular(6),
                                   gradient: _rememberMe
-                                      ? const LinearGradient(
-                                          colors: [
-                                            AppColors.mint,
-                                            AppColors.purple,
-                                          ],
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                        )
+                                      ? const LinearGradient(colors: [AppColors.mint, AppColors.purple])
                                       : null,
                                   border: _rememberMe
                                       ? null
-                                      : Border.all(
-                                          color: AppColors.mutedDark,
-                                          width: 1.5,
-                                        ),
+                                      : Border.all(color: AppColors.mutedDark, width: 1.5),
                                 ),
                                 child: _rememberMe
-                                    ? const Icon(
-                                        Icons.check,
-                                        color: Colors.white,
-                                        size: 14,
-                                      )
+                                    ? const Icon(Icons.check, color: Colors.white, size: 14)
                                     : null,
                               ),
                             ),
@@ -205,9 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               'Remember Me',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
-                                color: isDark
-                                    ? AppColors.textLight
-                                    : AppColors.textDark,
+                                color: isDark ? AppColors.textLight : AppColors.textDark,
                               ),
                             ),
                           ],
@@ -215,7 +223,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 24),
 
-                        // LOGIN button
                         SizedBox(
                           width: double.infinity,
                           height: 52,
@@ -224,24 +231,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(14),
-                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               padding: EdgeInsets.zero,
                             ),
                             child: Ink(
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFFFF4E1F),
-                                    Color(0xFFFF7849),
-                                  ],
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
+                                  colors: [Color(0xFFFF4E1F), Color(0xFFFF7849)],
                                 ),
-                                borderRadius:
-                                    BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(14),
                               ),
                               child: Container(
                                 alignment: Alignment.center,
@@ -249,16 +247,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ? const SizedBox(
                                         width: 22,
                                         height: 22,
-                                        child:
-                                            CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2.5,
-                                        ),
+                                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                                       )
                                     : Text(
                                         'LOGIN',
-                                        style: GoogleFonts
-                                            .plusJakartaSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w700,
                                           color: Colors.white,
@@ -272,7 +265,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 16),
 
-                        // Forgot password
                         Center(
                           child: TextButton(
                             onPressed: () {},
@@ -281,96 +273,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: isDark
-                                    ? AppColors.textLight
-                                    : AppColors.textDark,
+                                color: isDark ? AppColors.textLight : AppColors.textDark,
                               ),
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // OR divider
-                FadeInUp(
-                  delay: const Duration(milliseconds: 350),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Divider(
-                          color: isDark
-                              ? Colors.white.withOpacity(0.1)
-                              : Colors.black.withOpacity(0.1),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12),
-                        child: Text(
-                          'OR',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            color: isDark
-                                ? AppColors.mutedDark
-                                : AppColors.mutedLight,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Divider(
-                          color: isDark
-                              ? Colors.white.withOpacity(0.1)
-                              : Colors.black.withOpacity(0.1),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Google button
-                FadeInUp(
-                  delay: const Duration(milliseconds: 400),
-                  child: GlassCard(
-                    borderRadius: 14,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 14),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 22,
-                          height: 22,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'G',
-                              style: TextStyle(
-                                color: Color(0xFF4285F4),
-                                fontWeight: FontWeight.w900,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Continue with Google',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? AppColors.textLight
-                                : AppColors.textDark,
                           ),
                         ),
                       ],
@@ -380,27 +285,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 30),
 
-                // Signup link
                 FadeInUp(
-                  delay: const Duration(milliseconds: 450),
+                  delay: const Duration(milliseconds: 400),
                   child: Center(
                     child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const SignupScreen(),
-                          ),
-                        );
-                      },
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SignupScreen()),
+                      ),
                       child: RichText(
                         text: TextSpan(
                           text: "Don't have an account? ",
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
-                            color: isDark
-                                ? AppColors.mutedDark
-                                : AppColors.mutedLight,
+                            color: isDark ? AppColors.mutedDark : AppColors.mutedLight,
                           ),
                           children: [
                             TextSpan(

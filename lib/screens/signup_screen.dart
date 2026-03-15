@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/orb_background.dart';
+import '../services/supabase_service.dart';
 import 'login_screen.dart';
+import 'main_nav.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -22,6 +25,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _obscureConfirm = true;
   bool _agreeToTerms = false;
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -33,29 +37,55 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   void _handleSignup() async {
-    if (!_agreeToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please agree to Terms & Conditions'),
-          backgroundColor: AppColors.orangeRed,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+    if (_nameController.text.trim().isEmpty ||
+        _emailController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
+      setState(() => _errorMessage = 'Please fill in all fields');
       return;
     }
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() => _isLoading = false);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Account created successfully!'),
-          backgroundColor: AppColors.mint,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      setState(() => _errorMessage = 'Passwords do not match');
+      return;
+    }
+
+    if (_passwordController.text.length < 6) {
+      setState(() => _errorMessage = 'Password must be at least 6 characters');
+      return;
+    }
+
+    if (!_agreeToTerms) {
+      setState(() => _errorMessage = 'Please agree to Terms & Conditions');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await SupabaseService.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        name: _nameController.text.trim(),
       );
+
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainNav()),
+        );
+      }
+    } on AuthException catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.message;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Something went wrong. Please try again.';
+      });
     }
   }
 
@@ -73,7 +103,6 @@ class _SignupScreenState extends State<SignupScreen> {
               children: [
                 const SizedBox(height: 40),
 
-                // Logo + back button
                 FadeInDown(
                   duration: const Duration(milliseconds: 600),
                   child: Row(
@@ -86,9 +115,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             color: Colors.white.withOpacity(0.08),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.12),
-                            ),
+                            border: Border.all(color: Colors.white.withOpacity(0.12)),
                           ),
                           child: Icon(
                             Icons.arrow_back_ios_new_rounded,
@@ -101,15 +128,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       Container(
                         width: 36,
                         height: 36,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          gradient: const LinearGradient(
-                            colors: [AppColors.mint, AppColors.purple],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: const Icon(Icons.bolt, color: Colors.white, size: 20),
+                        child: Image.asset('assets/images/logo.png'),
                       ),
                       const SizedBox(width: 10),
                       Text(
@@ -126,10 +145,8 @@ class _SignupScreenState extends State<SignupScreen> {
 
                 const SizedBox(height: 40),
 
-                // Title
                 FadeInDown(
                   delay: const Duration(milliseconds: 100),
-                  duration: const Duration(milliseconds: 600),
                   child: Text(
                     'Sign Up',
                     style: GoogleFonts.plusJakartaSans(
@@ -145,7 +162,6 @@ class _SignupScreenState extends State<SignupScreen> {
 
                 FadeInDown(
                   delay: const Duration(milliseconds: 150),
-                  duration: const Duration(milliseconds: 600),
                   child: Text(
                     'CREATE YOUR ACCOUNT & START YOUR JOURNEY',
                     style: GoogleFonts.plusJakartaSans(
@@ -159,36 +175,27 @@ class _SignupScreenState extends State<SignupScreen> {
 
                 const SizedBox(height: 32),
 
-                // Glass form card
                 FadeInUp(
                   delay: const Duration(milliseconds: 200),
-                  duration: const Duration(milliseconds: 700),
                   child: GlassCard(
                     borderRadius: 24,
                     padding: const EdgeInsets.all(24),
                     child: Column(
                       children: [
-                        // Full Name
                         GlassTextField(
                           hint: 'Full Name',
                           suffixIcon: Icons.person_outline_rounded,
                           controller: _nameController,
                           keyboardType: TextInputType.name,
                         ),
-
                         const SizedBox(height: 14),
-
-                        // Email
                         GlassTextField(
                           hint: 'Email Address',
                           suffixIcon: Icons.email_outlined,
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                         ),
-
                         const SizedBox(height: 14),
-
-                        // Password
                         GlassTextField(
                           hint: 'Password',
                           suffixIcon: _obscurePassword
@@ -196,14 +203,9 @@ class _SignupScreenState extends State<SignupScreen> {
                               : Icons.visibility_outlined,
                           obscureText: _obscurePassword,
                           controller: _passwordController,
-                          onSuffixTap: () {
-                            setState(() => _obscurePassword = !_obscurePassword);
-                          },
+                          onSuffixTap: () => setState(() => _obscurePassword = !_obscurePassword),
                         ),
-
                         const SizedBox(height: 14),
-
-                        // Confirm Password
                         GlassTextField(
                           hint: 'Confirm Password',
                           suffixIcon: _obscureConfirm
@@ -211,14 +213,28 @@ class _SignupScreenState extends State<SignupScreen> {
                               : Icons.visibility_outlined,
                           obscureText: _obscureConfirm,
                           controller: _confirmPasswordController,
-                          onSuffixTap: () {
-                            setState(() => _obscureConfirm = !_obscureConfirm);
-                          },
+                          onSuffixTap: () => setState(() => _obscureConfirm = !_obscureConfirm),
                         ),
+
+                        if (_errorMessage != null) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.orangeRed.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppColors.orangeRed.withOpacity(0.3)),
+                            ),
+                            child: Text(
+                              _errorMessage!,
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.orangeRed),
+                            ),
+                          ),
+                        ],
 
                         const SizedBox(height: 20),
 
-                        // Terms checkbox
                         GestureDetector(
                           onTap: () => setState(() => _agreeToTerms = !_agreeToTerms),
                           child: Row(
@@ -231,18 +247,11 @@ class _SignupScreenState extends State<SignupScreen> {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(6),
                                   gradient: _agreeToTerms
-                                      ? const LinearGradient(
-                                          colors: [AppColors.mint, AppColors.purple],
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                        )
+                                      ? const LinearGradient(colors: [AppColors.mint, AppColors.purple])
                                       : null,
                                   border: _agreeToTerms
                                       ? null
-                                      : Border.all(
-                                          color: AppColors.mutedDark,
-                                          width: 1.5,
-                                        ),
+                                      : Border.all(color: AppColors.mutedDark, width: 1.5),
                                 ),
                                 child: _agreeToTerms
                                     ? const Icon(Icons.check, color: Colors.white, size: 14)
@@ -291,7 +300,6 @@ class _SignupScreenState extends State<SignupScreen> {
 
                         const SizedBox(height: 24),
 
-                        // Create Account Button
                         SizedBox(
                           width: double.infinity,
                           height: 52,
@@ -300,17 +308,13 @@ class _SignupScreenState extends State<SignupScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               padding: EdgeInsets.zero,
                             ),
                             child: Ink(
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
                                   colors: [Color(0xFFFF4E1F), Color(0xFFFF7849)],
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
                                 ),
                                 borderRadius: BorderRadius.circular(14),
                               ),
@@ -320,10 +324,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                     ? const SizedBox(
                                         width: 22,
                                         height: 22,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2.5,
-                                        ),
+                                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                                       )
                                     : Text(
                                         'CREATE ACCOUNT',
@@ -345,96 +346,14 @@ class _SignupScreenState extends State<SignupScreen> {
 
                 const SizedBox(height: 28),
 
-                // OR divider
-                FadeInUp(
-                  delay: const Duration(milliseconds: 350),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Divider(
-                          color: isDark
-                              ? Colors.white.withOpacity(0.1)
-                              : Colors.black.withOpacity(0.1),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          'OR',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            color: isDark ? AppColors.mutedDark : AppColors.mutedLight,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Divider(
-                          color: isDark
-                              ? Colors.white.withOpacity(0.1)
-                              : Colors.black.withOpacity(0.1),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Google Sign Up
                 FadeInUp(
                   delay: const Duration(milliseconds: 400),
-                  child: GlassCard(
-                    borderRadius: 14,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 22,
-                          height: 22,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'G',
-                              style: TextStyle(
-                                color: Color(0xFF4285F4),
-                                fontWeight: FontWeight.w900,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Continue with Google',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? AppColors.textLight : AppColors.textDark,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                // Login link
-                FadeInUp(
-                  delay: const Duration(milliseconds: 450),
                   child: Center(
                     child: GestureDetector(
-                      onTap: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => const LoginScreen()),
-                        );
-                      },
+                      onTap: () => Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      ),
                       child: RichText(
                         text: TextSpan(
                           text: 'Already have an account? ',
