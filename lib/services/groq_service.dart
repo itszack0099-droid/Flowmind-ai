@@ -6,7 +6,7 @@ class GroqService {
   static const String _model = 'llama3-8b-8192';
 
   static const String _apiKey = String.fromEnvironment(
-    'GROQ_API_KEY',
+    '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',
     defaultValue: '',
   );
 
