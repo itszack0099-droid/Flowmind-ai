@@ -21,13 +21,29 @@ class SupabaseService {
       password: password,
       data: {'name': name},
     );
-    if (response.user != null) {
-      await createProfile(
-        userId: response.user!.id,
-        name: name,
-        email: email,
-      );
+    // Do NOT create profile here — wait until OTP is verified
+    return response;
+  }
+
+  static Future<AuthResponse> verifyOtpAndCreateProfile({
+    required String email,
+    required String token,
+  }) async {
+    final response = await client.auth.verifyOTP(
+      email: email,
+      token: token,
+      type: OtpType.signup,
+    );
+    if (response.session == null || response.user == null) {
+      throw const AuthException('Email verification failed. Please try again.');
     }
+    final name = response.user!.userMetadata?['name'] as String? ??
+        email.split('@')[0];
+    await createProfile(
+      userId: response.user!.id,
+      name: name,
+      email: email,
+    );
     return response;
   }
 

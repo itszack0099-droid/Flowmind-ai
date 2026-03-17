@@ -5,10 +5,9 @@ class GroqService {
   static const String _baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
   static const String _model = 'llama3-8b-8192';
 
-  static const String _apiKey = String.fromEnvironment(
-    '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',
-    defaultValue: '',
-  );
+  // Key injected at build time via --dart-define=GROQ_API_KEY=...
+  // Original bug was passing the key itself as the env var name — now fixed
+  static const String _apiKey = String.fromEnvironment('GROQ_API_KEY');
 
   // ─── CORE REQUEST ───────────────────────────────────
 
@@ -37,11 +36,17 @@ class GroqService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['choices'][0]['message']['content'] as String;
+        final content = data['choices']?[0]?['message']?['content'];
+        if (content == null || (content as String).trim().isEmpty) {
+          return 'No response received. Please try again.';
+        }
+        return content;
       } else {
+        debugPrint('[GroqService] Error ${response.statusCode}: ${response.body}');
         return 'Sorry, I could not process your request. Please try again.';
       }
     } catch (e) {
+      debugPrint('[GroqService] Exception: $e');
       return 'Connection error. Please check your internet and try again.';
     }
   }
@@ -89,11 +94,17 @@ Never use emojis in responses.''',
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['choices'][0]['message']['content'] as String;
+        final content = data['choices']?[0]?['message']?['content'];
+        if (content == null || (content as String).trim().isEmpty) {
+          return 'No response received. Please try again.';
+        }
+        return content;
       } else {
+        debugPrint('[GroqService] Chat error ${response.statusCode}: ${response.body}');
         return 'Sorry, I could not respond right now. Please try again.';
       }
     } catch (e) {
+      debugPrint('[GroqService] Chat exception: $e');
       return 'Connection error. Please check your internet.';
     }
   }

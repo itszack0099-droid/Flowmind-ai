@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../widgets/orb_background.dart';
+import '../services/supabase_service.dart';
 import 'main_nav.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -171,11 +172,21 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
     }
     setState(() { _isLoading = true; _errorMessage = null; });
     try {
-      await Supabase.instance.client.auth.verifyOTP(
+      final response = await SupabaseService.verifyOtpAndCreateProfile(
         email: widget.email,
         token: _otp,
-        type: OtpType.signup,
       );
+      if (response.session == null) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Verification failed. Please try again.';
+        });
+        for (final c in _controllers) c.clear();
+        _focusNodes[0].requestFocus();
+        _shakeController.forward(from: 0);
+        HapticFeedback.heavyImpact();
+        return;
+      }
       setState(() { _isSuccess = true; _isLoading = false; });
       _blinkController.reverse();
       _successController.forward();
@@ -194,6 +205,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
       _shakeController.forward(from: 0);
       HapticFeedback.heavyImpact();
     } catch (e) {
+      debugPrint('[OtpScreen] Verification error: $e');
       setState(() { _isLoading = false; _errorMessage = 'Invalid code. Please try again.'; });
       for (final c in _controllers) c.clear();
       _focusNodes[0].requestFocus();
