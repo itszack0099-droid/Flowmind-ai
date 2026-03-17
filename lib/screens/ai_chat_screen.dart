@@ -49,25 +49,39 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
     _scrollToBottom();
 
-    // Get real AI response from Groq
-    final response = await GroqService.chat(
-      userMessage: text,
-      history: _history.length > 10
-          ? _history.sublist(_history.length - 10)
-          : _history,
-    );
+    try {
+      final response = await GroqService.chat(
+        userMessage: text,
+        history: _history.length > 10
+            ? _history.sublist(_history.length - 10)
+            : _history,
+      );
 
-    if (mounted) {
-      setState(() {
-        _isTyping = false;
-        _messages.add({
-          'role': 'ai',
-          'text': response,
-          'time': TimeOfDay.now().format(context),
+      if (mounted) {
+        setState(() {
+          _isTyping = false;
+          _messages.add({
+            'role': 'ai',
+            'text': response,
+            'time': TimeOfDay.now().format(context),
+          });
+          _history.add({'role': 'assistant', 'content': response});
         });
-        _history.add({'role': 'assistant', 'content': response});
-      });
-      _scrollToBottom();
+        _scrollToBottom();
+      }
+    } catch (e) {
+      debugPrint('[AiChat] Unexpected error: $e');
+      if (mounted) {
+        setState(() {
+          _isTyping = false;
+          _messages.add({
+            'role': 'ai',
+            'text': 'Something went wrong. Please try again.',
+            'time': TimeOfDay.now().format(context),
+          });
+        });
+        _scrollToBottom();
+      }
     }
   }
 

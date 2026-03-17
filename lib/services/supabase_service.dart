@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../utils/logger.dart';
 
 class SupabaseService {
   static final SupabaseClient client = Supabase.instance.client;
@@ -29,14 +30,22 @@ class SupabaseService {
     required String email,
     required String token,
   }) async {
+    final trimmedToken = token.trim();
+    logMessage('[SupabaseService] Verifying OTP for $email, token length: ${trimmedToken.length}');
+
     final response = await client.auth.verifyOTP(
       email: email,
-      token: token,
-      type: OtpType.signup,
+      token: trimmedToken,
+      type: OtpType.email,
     );
+
+    logMessage('[SupabaseService] OTP response — session: ${response.session != null}, user: ${response.user?.id}');
+
     if (response.session == null || response.user == null) {
+      logMessage('[SupabaseService] OTP verification failed — no session returned');
       throw const AuthException('Email verification failed. Please try again.');
     }
+
     final name = response.user!.userMetadata?['name'] as String? ??
         email.split('@')[0];
     await createProfile(

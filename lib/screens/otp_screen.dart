@@ -166,6 +166,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
   }
 
   void _verifyOtp() async {
+    if (_isLoading) return;
     if (_otp.length < 6) {
       setState(() => _errorMessage = 'Please enter the complete 6-digit code');
       return;
@@ -174,7 +175,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
     try {
       final response = await SupabaseService.verifyOtpAndCreateProfile(
         email: widget.email,
-        token: _otp,
+        token: _otp.trim(),
       );
       if (response.session == null) {
         setState(() {
@@ -199,13 +200,14 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
         );
       }
     } on AuthException catch (e) {
+      debugPrint('[OtpScreen] AuthException: ${e.message} (status: ${e.statusCode})');
       setState(() { _isLoading = false; _errorMessage = e.message; });
       for (final c in _controllers) c.clear();
       _focusNodes[0].requestFocus();
       _shakeController.forward(from: 0);
       HapticFeedback.heavyImpact();
     } catch (e) {
-      debugPrint('[OtpScreen] Verification error: $e');
+      debugPrint('[OtpScreen] Unexpected verification error: $e');
       setState(() { _isLoading = false; _errorMessage = 'Invalid code. Please try again.'; });
       for (final c in _controllers) c.clear();
       _focusNodes[0].requestFocus();
@@ -219,7 +221,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
     setState(() => _isResending = true);
     try {
       await Supabase.instance.client.auth.resend(
-        type: OtpType.signup,
+        type: OtpType.email,
         email: widget.email,
       );
       _startResendTimer();
