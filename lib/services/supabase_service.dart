@@ -18,7 +18,7 @@ class SupabaseService {
     required String name,
   }) async {
     logMessage('[SupabaseService] signUp called for: $email');
-    logMessage('[SupabaseService] Connecting to: ${client.supabaseUrl}');
+    logMessage('[SupabaseService] Connecting to: https://siujmsbmvwxxbdhlihgd.supabase.co');
     try {
       final response = await client.auth.signUp(
         email: email,
