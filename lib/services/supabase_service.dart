@@ -17,13 +17,21 @@ class SupabaseService {
     required String password,
     required String name,
   }) async {
-    final response = await client.auth.signUp(
-      email: email,
-      password: password,
-      data: {'name': name},
-    );
-    // Do NOT create profile here — wait until OTP is verified
-    return response;
+    logMessage('[SupabaseService] signUp called for: $email');
+    logMessage('[SupabaseService] Connecting to: ${client.supabaseUrl}');
+    try {
+      final response = await client.auth.signUp(
+        email: email,
+        password: password,
+        data: {'name': name},
+      );
+      logMessage('[SupabaseService] signUp success — user: ${response.user?.id}');
+      // Do NOT create profile here — wait until OTP is verified
+      return response;
+    } catch (e) {
+      logMessage('[SupabaseService] signUp error: $e');
+      rethrow;
+    }
   }
 
   static Future<AuthResponse> verifyOtpAndCreateProfile({
