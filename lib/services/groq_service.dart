@@ -1,5 +1,12 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
+void logMessage(String message) {
+  if (kDebugMode) {
+    print(message);
+  }
+}
 
 class GroqService {
   static const String _baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
@@ -42,11 +49,11 @@ class GroqService {
         }
         return content;
       } else {
-        debugPrint('[GroqService] Error ${response.statusCode}: ${response.body}');
+        logMessage('[GroqService] Error ${response.statusCode}: ${response.body}');
         return 'Sorry, I could not process your request. Please try again.';
       }
     } catch (e) {
-      debugPrint('[GroqService] Exception: $e');
+      logMessage('[GroqService] Exception: $e');
       return 'Connection error. Please check your internet and try again.';
     }
   }
@@ -100,11 +107,11 @@ Never use emojis in responses.''',
         }
         return content;
       } else {
-        debugPrint('[GroqService] Chat error ${response.statusCode}: ${response.body}');
+        logMessage('[GroqService] Chat error ${response.statusCode}: ${response.body}');
         return 'Sorry, I could not respond right now. Please try again.';
       }
     } catch (e) {
-      debugPrint('[GroqService] Chat exception: $e');
+      logMessage('[GroqService] Chat exception: $e');
       return 'Connection error. Please check your internet.';
     }
   }
