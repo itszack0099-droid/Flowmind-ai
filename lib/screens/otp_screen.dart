@@ -6,7 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import '../widgets/orb_background.dart';
-import '../services/supabase_service.dart';
 import 'main_nav.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -87,10 +86,14 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
     );
 
     _successAnim = TweenSequence([
-      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 1.25), weight: 35),
-      TweenSequenceItem(tween: Tween<double>(begin: 1.25, end: 0.92), weight: 30),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.92, end: 1.0), weight: 35),
-    ]).animate(CurvedAnimation(parent: _successController, curve: Curves.easeInOut));
+      TweenSequenceItem(
+          tween: Tween<double>(begin: 1.0, end: 1.25), weight: 35),
+      TweenSequenceItem(
+          tween: Tween<double>(begin: 1.25, end: 0.92), weight: 30),
+      TweenSequenceItem(
+          tween: Tween<double>(begin: 0.92, end: 1.0), weight: 35),
+    ]).animate(
+        CurvedAnimation(parent: _successController, curve: Curves.easeInOut));
 
     _shakeController = AnimationController(
       vsync: this,
@@ -98,12 +101,18 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
     );
 
     _shakeAnim = TweenSequence([
-      TweenSequenceItem(tween: Tween<double>(begin: 0, end: -12), weight: 15),
-      TweenSequenceItem(tween: Tween<double>(begin: -12, end: 12), weight: 30),
-      TweenSequenceItem(tween: Tween<double>(begin: 12, end: -8), weight: 25),
-      TweenSequenceItem(tween: Tween<double>(begin: -8, end: 8), weight: 20),
-      TweenSequenceItem(tween: Tween<double>(begin: 8, end: 0), weight: 10),
-    ]).animate(CurvedAnimation(parent: _shakeController, curve: Curves.easeInOut));
+      TweenSequenceItem(
+          tween: Tween<double>(begin: 0, end: -12), weight: 15),
+      TweenSequenceItem(
+          tween: Tween<double>(begin: -12, end: 12), weight: 30),
+      TweenSequenceItem(
+          tween: Tween<double>(begin: 12, end: -8), weight: 25),
+      TweenSequenceItem(
+          tween: Tween<double>(begin: -8, end: 8), weight: 20),
+      TweenSequenceItem(
+          tween: Tween<double>(begin: 8, end: 0), weight: 10),
+    ]).animate(
+        CurvedAnimation(parent: _shakeController, curve: Curves.easeInOut));
   }
 
   void _setupFocusListeners() {
@@ -138,7 +147,10 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
   }
 
   void _startResendTimer() {
-    setState(() { _resendTimer = 60; _canResend = false; });
+    setState(() {
+      _resendTimer = 60;
+      _canResend = false;
+    });
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 1));
       if (!mounted) return false;
@@ -157,7 +169,8 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
     if (value.isNotEmpty && index < 5) {
       _focusNodes[index + 1].requestFocus();
     }
-    final filled = _controllers.where((c) => c.text.isNotEmpty).length;
+    final filled =
+        _controllers.where((c) => c.text.isNotEmpty).length;
     setState(() => _isTyping = filled > 0 && filled < 6);
     if (_otp.length == 6) {
       _focusNodes[5].unfocus();
@@ -166,29 +179,25 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
   }
 
   void _verifyOtp() async {
-    if (_isLoading) return;
     if (_otp.length < 6) {
-      setState(() => _errorMessage = 'Please enter the complete 6-digit code');
+      setState(
+          () => _errorMessage = 'Please enter the complete 6-digit code');
       return;
     }
-    setState(() { _isLoading = true; _errorMessage = null; });
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     try {
-      final response = await SupabaseService.verifyOtpAndCreateProfile(
+      await Supabase.instance.client.auth.verifyOTP(
         email: widget.email,
-        token: _otp.trim(),
+        token: _otp,
+        type: OtpType.email,
       );
-      if (response.session == null) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Verification failed. Please try again.';
-        });
-        for (final c in _controllers) c.clear();
-        _focusNodes[0].requestFocus();
-        _shakeController.forward(from: 0);
-        HapticFeedback.heavyImpact();
-        return;
-      }
-      setState(() { _isSuccess = true; _isLoading = false; });
+      setState(() {
+        _isSuccess = true;
+        _isLoading = false;
+      });
       _blinkController.reverse();
       _successController.forward();
       HapticFeedback.mediumImpact();
@@ -200,15 +209,19 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
         );
       }
     } on AuthException catch (e) {
-      debugPrint('[OtpScreen] AuthException: ${e.message} (status: ${e.statusCode})');
-      setState(() { _isLoading = false; _errorMessage = e.message; });
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.message;
+      });
       for (final c in _controllers) c.clear();
       _focusNodes[0].requestFocus();
       _shakeController.forward(from: 0);
       HapticFeedback.heavyImpact();
     } catch (e) {
-      debugPrint('[OtpScreen] Unexpected verification error: $e');
-      setState(() { _isLoading = false; _errorMessage = 'Invalid code. Please try again.'; });
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Invalid code. Please try again.';
+      });
       for (final c in _controllers) c.clear();
       _focusNodes[0].requestFocus();
       _shakeController.forward(from: 0);
@@ -227,10 +240,12 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
       _startResendTimer();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Code resent!', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
+          content: Text('Code resent!',
+              style: GoogleFonts.plusJakartaSans(color: Colors.white)),
           backgroundColor: AppColors.mint,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
         ));
       }
     } catch (e) {
@@ -272,14 +287,19 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                     child: GestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: Container(
-                        width: 40, height: 40,
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
                           color: Colors.white.withOpacity(0.08),
-                          border: Border.all(color: Colors.white.withOpacity(0.12)),
+                          border: Border.all(
+                              color: Colors.white.withOpacity(0.12)),
                         ),
                         child: Icon(Icons.arrow_back_ios_new_rounded,
-                          color: isDark ? AppColors.textLight : AppColors.textDark, size: 16),
+                            color: isDark
+                                ? AppColors.textLight
+                                : AppColors.textDark,
+                            size: 16),
                       ),
                     ),
                   ),
@@ -289,14 +309,19 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
 
                 // Watch Character
                 AnimatedBuilder(
-                  animation: Listenable.merge([_bobController, _successController, _shakeController]),
+                  animation: Listenable.merge([
+                    _bobController,
+                    _successController,
+                    _shakeController,
+                  ]),
                   builder: (context, _) => Transform.translate(
                     offset: Offset(
                       _isSuccess ? 0 : _shakeAnim.value,
                       _isSuccess ? 0 : _bobAnim.value,
                     ),
                     child: Transform.scale(
-                      scale: _isSuccess ? _successAnim.value : 1.0,
+                      scale:
+                          _isSuccess ? _successAnim.value : 1.0,
                       child: _WatchCharacter(
                         isDark: isDark,
                         isKeyboardVisible: _keyboardVisible,
@@ -319,7 +344,11 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
-                      color: _isSuccess ? AppColors.mint : (isDark ? AppColors.textLight : AppColors.textDark),
+                      color: _isSuccess
+                          ? AppColors.mint
+                          : (isDark
+                              ? AppColors.textLight
+                              : AppColors.textDark),
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -330,10 +359,14 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                 FadeInDown(
                   delay: const Duration(milliseconds: 150),
                   child: Text(
-                    _isSuccess ? 'Welcome to FlowMind! Taking you in...' : 'We sent a 6-digit verification code to',
+                    _isSuccess
+                        ? 'Welcome to FlowMind! Taking you in...'
+                        : 'We sent a 6-digit verification code to',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
-                      color: isDark ? AppColors.mutedDark : AppColors.mutedLight,
+                      color: isDark
+                          ? AppColors.mutedDark
+                          : AppColors.mutedLight,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -358,18 +391,23 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                     delay: const Duration(milliseconds: 200),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(6, (i) => _OtpBox(
-                        controller: _controllers[i],
-                        focusNode: _focusNodes[i],
-                        isDark: isDark,
-                        onChanged: (val) => _onDigitChanged(i, val),
-                        onBackspace: () {
-                          if (i > 0 && _controllers[i].text.isEmpty) {
-                            _controllers[i - 1].clear();
-                            _focusNodes[i - 1].requestFocus();
-                          }
-                        },
-                      )),
+                      children: List.generate(
+                        6,
+                        (i) => _OtpBox(
+                          controller: _controllers[i],
+                          focusNode: _focusNodes[i],
+                          isDark: isDark,
+                          onChanged: (val) =>
+                              _onDigitChanged(i, val),
+                          onBackspace: () {
+                            if (i > 0 &&
+                                _controllers[i].text.isEmpty) {
+                              _controllers[i - 1].clear();
+                              _focusNodes[i - 1].requestFocus();
+                            }
+                          },
+                        ),
+                      ),
                     ),
                   ),
 
@@ -382,11 +420,15 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                         decoration: BoxDecoration(
                           color: AppColors.orangeRed.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.orangeRed.withOpacity(0.3)),
+                          border: Border.all(
+                              color: AppColors.orangeRed
+                                  .withOpacity(0.3)),
                         ),
                         child: Text(_errorMessage!,
-                          style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.orangeRed),
-                          textAlign: TextAlign.center),
+                            style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                color: AppColors.orangeRed),
+                            textAlign: TextAlign.center),
                       ),
                     ),
                   ],
@@ -399,27 +441,44 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _verifyOtp,
+                        onPressed:
+                            _isLoading ? null : _verifyOtp,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(14)),
                           padding: EdgeInsets.zero,
                         ),
                         child: Ink(
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(colors: [Color(0xFFFF4E1F), Color(0xFFFF7849)]),
-                            borderRadius: BorderRadius.circular(14),
+                            gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFFFF4E1F),
+                                  Color(0xFFFF7849)
+                                ]),
+                            borderRadius:
+                                BorderRadius.circular(14),
                           ),
                           child: Container(
                             alignment: Alignment.center,
                             child: _isLoading
-                                ? const SizedBox(width: 22, height: 22,
-                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child:
+                                        CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2.5))
                                 : Text('VERIFY CODE',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 15, fontWeight: FontWeight.w700,
-                                      color: Colors.white, letterSpacing: 1.5)),
+                                    style: GoogleFonts
+                                        .plusJakartaSans(
+                                            fontSize: 15,
+                                            fontWeight:
+                                                FontWeight.w700,
+                                            color: Colors.white,
+                                            letterSpacing: 1.5)),
                           ),
                         ),
                       ),
@@ -433,22 +492,33 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                     child: GestureDetector(
                       onTap: _canResend ? _resendOtp : null,
                       child: _isResending
-                          ? const SizedBox(width: 20, height: 20,
-                              child: CircularProgressIndicator(color: AppColors.mint, strokeWidth: 2))
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  color: AppColors.mint,
+                                  strokeWidth: 2))
                           : RichText(
                               text: TextSpan(
                                 text: "Didn't receive the code? ",
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
-                                  color: isDark ? AppColors.mutedDark : AppColors.mutedLight,
+                                  color: isDark
+                                      ? AppColors.mutedDark
+                                      : AppColors.mutedLight,
                                 ),
                                 children: [
                                   TextSpan(
-                                    text: _canResend ? 'Resend now' : 'Resend in ${_resendTimer}s',
-                                    style: GoogleFonts.plusJakartaSans(
+                                    text: _canResend
+                                        ? 'Resend now'
+                                        : 'Resend in ${_resendTimer}s',
+                                    style:
+                                        GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
-                                      color: _canResend ? AppColors.mint : AppColors.mutedDark,
+                                      color: _canResend
+                                          ? AppColors.mint
+                                          : AppColors.mutedDark,
                                     ),
                                   ),
                                 ],
@@ -496,30 +566,28 @@ class _WatchCharacter extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Strap top
           Positioned(
             top: 8,
             child: Container(
-              width: 34, height: 22,
+              width: 34,
+              height: 22,
               decoration: BoxDecoration(
                 color: const Color(0xFF1A1A2E),
-                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(6),
               ),
             ),
           ),
-          // Strap bottom
           Positioned(
             bottom: 8,
             child: Container(
-              width: 34, height: 22,
+              width: 34,
+              height: 22,
               decoration: BoxDecoration(
                 color: const Color(0xFF1A1A2E),
                 borderRadius: BorderRadius.circular(6),
               ),
             ),
           ),
-
-          // Watch face
           Container(
             width: 132,
             height: 132,
@@ -527,12 +595,17 @@ class _WatchCharacter extends StatelessWidget {
               shape: BoxShape.circle,
               color: const Color(0xFF0A0A14),
               border: Border.all(
-                color: isSuccess ? AppColors.mint : AppColors.purple,
+                color: isSuccess
+                    ? AppColors.mint
+                    : AppColors.purple,
                 width: 4,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: (isSuccess ? AppColors.mint : AppColors.purple).withOpacity(0.4),
+                  color: (isSuccess
+                          ? AppColors.mint
+                          : AppColors.purple)
+                      .withOpacity(0.4),
                   blurRadius: 20,
                   spreadRadius: 3,
                 ),
@@ -541,19 +614,20 @@ class _WatchCharacter extends StatelessWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Clock hands
                 AnimatedBuilder(
                   animation: handAnim,
                   builder: (context, _) => CustomPaint(
                     size: const Size(132, 132),
                     painter: _HandsPainter(
-                      angle: isSuccess ? 0 : (isKeyboardVisible ? 1.57 : handAnim.value),
+                      angle: isSuccess
+                          ? 0
+                          : (isKeyboardVisible
+                              ? 1.57
+                              : handAnim.value),
                       isSuccess: isSuccess,
                     ),
                   ),
                 ),
-
-                // Eyes
                 Positioned(
                   top: 32,
                   child: AnimatedBuilder(
@@ -562,8 +636,16 @@ class _WatchCharacter extends StatelessWidget {
                       return Row(
                         children: [
                           _Eye(
-                            scaleY: isSuccess ? 0.1 : (isKeyboardVisible ? eyeAnim.value : (1.0 - blinkController.value * 0.95)),
-                            color: isSuccess ? AppColors.mint : Colors.white,
+                            scaleY: isSuccess
+                                ? 0.1
+                                : (isKeyboardVisible
+                                    ? eyeAnim.value
+                                    : (1.0 -
+                                        blinkController.value *
+                                            0.95)),
+                            color: isSuccess
+                                ? AppColors.mint
+                                : Colors.white,
                           ),
                           const SizedBox(width: 22),
                           _Eye(
@@ -573,16 +655,18 @@ class _WatchCharacter extends StatelessWidget {
                                     ? 0.35
                                     : isKeyboardVisible
                                         ? eyeAnim.value
-                                        : (1.0 - blinkController.value * 0.95),
-                            color: isSuccess ? AppColors.mint : Colors.white,
+                                        : (1.0 -
+                                            blinkController.value *
+                                                0.95),
+                            color: isSuccess
+                                ? AppColors.mint
+                                : Colors.white,
                           ),
                         ],
                       );
                     },
                   ),
                 ),
-
-                // Mouth
                 Positioned(
                   bottom: 24,
                   child: CustomPaint(
@@ -593,25 +677,37 @@ class _WatchCharacter extends StatelessWidget {
                     ),
                   ),
                 ),
-
-                // Center dot
                 Container(
-                  width: 10, height: 10,
-                  decoration: BoxDecoration(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isSuccess ? AppColors.mint : AppColors.mint,
+                    color: AppColors.mint,
                   ),
                 ),
               ],
             ),
           ),
-
-          // Success sparkles
           if (isSuccess) ...[
-            Positioned(top: 20, right: 20, child: _Sparkle(color: AppColors.mint, size: 12)),
-            Positioned(top: 30, left: 18, child: _Sparkle(color: AppColors.purple, size: 8)),
-            Positioned(bottom: 30, right: 16, child: _Sparkle(color: AppColors.mint, size: 10)),
-            Positioned(bottom: 25, left: 22, child: _Sparkle(color: Colors.white, size: 7)),
+            Positioned(
+                top: 20,
+                right: 20,
+                child:
+                    _Sparkle(color: AppColors.mint, size: 12)),
+            Positioned(
+                top: 30,
+                left: 18,
+                child:
+                    _Sparkle(color: AppColors.purple, size: 8)),
+            Positioned(
+                bottom: 30,
+                right: 16,
+                child:
+                    _Sparkle(color: AppColors.mint, size: 10)),
+            Positioned(
+                bottom: 25,
+                left: 22,
+                child: _Sparkle(color: Colors.white, size: 7)),
           ],
         ],
       ),
@@ -629,14 +725,16 @@ class _Eye extends StatelessWidget {
     return Transform.scale(
       scaleY: scaleY.clamp(0.05, 1.0),
       child: Container(
-        width: 17, height: 19,
+        width: 17,
+        height: 19,
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(9),
         ),
         child: Center(
           child: Container(
-            width: 7, height: 7,
+            width: 7,
+            height: 7,
             decoration: const BoxDecoration(
               color: Color(0xFF0A0A14),
               shape: BoxShape.circle,
@@ -656,11 +754,14 @@ class _Sparkle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size, height: size,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: color.withOpacity(0.6), blurRadius: 6)],
+        boxShadow: [
+          BoxShadow(color: color.withOpacity(0.6), blurRadius: 6)
+        ],
       ),
     );
   }
@@ -678,7 +779,7 @@ class _HandsPainter extends CustomPainter {
     final cy = size.height / 2;
 
     final minutePaint = Paint()
-      ..color = isSuccess ? AppColors.mint : AppColors.mint
+      ..color = AppColors.mint
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.round;
 
@@ -687,8 +788,10 @@ class _HandsPainter extends CustomPainter {
       ..strokeWidth = 5
       ..strokeCap = StrokeCap.round;
 
-    final mAngle = isSuccess ? -1.5708 : (3.14159 + angle);
-    final hAngle = isSuccess ? -0.5236 : (1.5708 + angle * 0.5);
+    final mAngle =
+        isSuccess ? -1.5708 : (3.14159 + angle);
+    final hAngle =
+        isSuccess ? -0.5236 : (1.5708 + angle * 0.5);
 
     canvas.drawLine(
       Offset(cx, cy),
@@ -732,7 +835,8 @@ class _MouthPainter extends CustomPainter {
   final bool isSuccess;
   final bool isKeyboard;
 
-  _MouthPainter({required this.isSuccess, required this.isKeyboard});
+  _MouthPainter(
+      {required this.isSuccess, required this.isKeyboard});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -763,10 +867,10 @@ class _MouthPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MouthPainter old) =>
-      old.isSuccess != isSuccess || old.isKeyboard != isKeyboard;
+      old.isSuccess != isSuccess ||
+      old.isKeyboard != isKeyboard;
 }
 
-// OTP Box Widget
 class _OtpBox extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
@@ -791,7 +895,8 @@ class _OtpBox extends StatelessWidget {
       child: Focus(
         onKeyEvent: (node, event) {
           if (event is KeyDownEvent &&
-              event.logicalKey == LogicalKeyboardKey.backspace &&
+              event.logicalKey ==
+                  LogicalKeyboardKey.backspace &&
               controller.text.isEmpty) {
             onBackspace();
             return KeyEventResult.handled;
@@ -804,7 +909,9 @@ class _OtpBox extends StatelessWidget {
           textAlign: TextAlign.center,
           keyboardType: TextInputType.number,
           maxLength: 1,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly
+          ],
           style: GoogleFonts.plusJakartaSans(
             fontSize: 24,
             fontWeight: FontWeight.w800,
@@ -816,15 +923,18 @@ class _OtpBox extends StatelessWidget {
             fillColor: Colors.white.withOpacity(0.06),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+              borderSide: BorderSide(
+                  color: Colors.white.withOpacity(0.1)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+              borderSide: BorderSide(
+                  color: Colors.white.withOpacity(0.12)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.mint, width: 2),
+              borderSide: const BorderSide(
+                  color: AppColors.mint, width: 2),
             ),
           ),
           onChanged: onChanged,
