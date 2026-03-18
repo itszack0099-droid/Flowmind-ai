@@ -36,45 +36,37 @@ jobs:
           cp temp_project/analysis_options.yaml ./analysis_options.yaml || true
           rm -rf temp_project
 
-      - name: Write AndroidManifest with Internet Permission
+      - name: Add Internet Permission and Deep Link
         run: |
-          python3 - << 'PYEOF'
-          manifest = """<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET"/>
-              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-              <application
-                  android:label="FlowMind AI"
-                  android:name="${applicationName}"
-                  android:icon="@mipmap/ic_launcher">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true"
-                      android:launchMode="singleTop"
-                      android:taskAffinity=""
-                      android:theme="@style/LaunchTheme"
-                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
-                      android:hardwareAccelerated="true"
-                      android:windowSoftInputMode="adjustResize">
-                      <meta-data
-                          android:name="io.flutter.embedding.android.NormalTheme"
-                          android:resource="@style/NormalTheme"/>
-                      <intent-filter android:autoVerify="true">
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
-                  </activity>
-                  <meta-data
-                      android:name="flutterEmbedding"
-                      android:value="2"/>
-              </application>
-          </manifest>
-          """
-          with open("android/app/src/main/AndroidManifest.xml", "w") as f:
-              f.write(manifest)
-          print("AndroidManifest.xml written successfully")
-          PYEOF
-          echo "--- Final AndroidManifest.xml ---"
-          cat android/app/src/main/AndroidManifest.xml
+          python3 - <<'EOF'
+          with open('android/app/src/main/AndroidManifest.xml', 'r') as f:
+              content = f.read()
+
+          if 'android.permission.INTERNET' not in content:
+              content = content.replace(
+                  '<application',
+                  '<uses-permission android:name="android.permission.INTERNET"/>\n    <application'
+              )
+
+          deep_link = '''
+                  <intent-filter>
+                      <action android:name="android.intent.action.VIEW"/>
+                      <category android:name="android.intent.category.DEFAULT"/>
+                      <category android:name="android.intent.category.BROWSABLE"/>
+                      <data android:scheme="flowmind"/>
+                  </intent-filter>'''
+
+          if 'flowmind' not in content:
+              content = content.replace(
+                  '</activity>',
+                  deep_link + '\n        </activity>'
+              )
+
+          with open('android/app/src/main/AndroidManifest.xml', 'w') as f:
+              f.write(content)
+
+          print("AndroidManifest.xml updated successfully!")
+          EOF
 
       - name: Create assets directory
         run: mkdir -p assets/images
