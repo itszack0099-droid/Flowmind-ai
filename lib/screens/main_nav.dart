@@ -26,78 +26,75 @@ class _MainNavState extends State<MainNav> {
     const ProfileScreen(),
   ];
 
-  final List<_NavItem> _navItems = [
-    _NavItem(icon: CupertinoIcons.house, activeIcon: CupertinoIcons.house_fill, label: 'Home'),
-    _NavItem(icon: CupertinoIcons.cloud_upload, activeIcon: CupertinoIcons.cloud_upload_fill, label: 'Dump'),
-    _NavItem(icon: CupertinoIcons.chat_bubble_text, activeIcon: CupertinoIcons.chat_bubble_text_fill, label: 'Chat'),
-    _NavItem(icon: CupertinoIcons.chart_bar, activeIcon: CupertinoIcons.chart_bar_fill, label: 'Stats'),
-    _NavItem(icon: CupertinoIcons.person, activeIcon: CupertinoIcons.person_fill, label: 'Me'),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF0D0D18).withOpacity(0.97) : Colors.white.withOpacity(0.97),
-          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.07), width: 1)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 24, offset: const Offset(0, -4))],
+          color: isDark ? const Color(0xFF0D0D1A) : Colors.white,
+          border: Border(
+            top: BorderSide(
+              color: Colors.white.withOpacity(0.07),
+              width: 1,
+            ),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
         ),
         child: SafeArea(
-          child: SizedBox(
-            height: 64,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
-              children: List.generate(_navItems.length, (index) {
-                final item = _navItems[index];
-                final isActive = index == _currentIndex;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _currentIndex = index),
-                    behavior: HitTestBehavior.opaque,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          width: isActive ? 20 : 0,
-                          height: isActive ? 3 : 0,
-                          margin: const EdgeInsets.only(bottom: 4),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            gradient: const LinearGradient(colors: [AppColors.mint, AppColors.purple]),
-                          ),
-                        ),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            color: isActive ? AppColors.mint.withOpacity(0.1) : Colors.transparent,
-                          ),
-                          child: Icon(
-                            isActive ? item.activeIcon : item.icon,
-                            size: 22,
-                            color: isActive ? AppColors.mint : (isDark ? AppColors.mutedDark : AppColors.mutedLight),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          item.label,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 10,
-                            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                            color: isActive ? AppColors.mint : (isDark ? AppColors.mutedDark : AppColors.mutedLight),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _NavItem(
+                  icon: CupertinoIcons.house,
+                  activeIcon: CupertinoIcons.house_fill,
+                  label: 'Home',
+                  isActive: _currentIndex == 0,
+                  onTap: () => setState(() => _currentIndex = 0),
+                ),
+                _NavItem(
+                  icon: CupertinoIcons.cloud_upload,
+                  activeIcon: CupertinoIcons.cloud_upload_fill,
+                  label: 'Dump',
+                  isActive: _currentIndex == 1,
+                  onTap: () => setState(() => _currentIndex = 1),
+                ),
+                _NavItem(
+                  icon: CupertinoIcons.chat_bubble_text,
+                  activeIcon: CupertinoIcons.chat_bubble_text_fill,
+                  label: 'Chat',
+                  isActive: _currentIndex == 2,
+                  onTap: () => setState(() => _currentIndex = 2),
+                  isCenter: true,
+                ),
+                _NavItem(
+                  icon: CupertinoIcons.chart_bar,
+                  activeIcon: CupertinoIcons.chart_bar_fill,
+                  label: 'Stats',
+                  isActive: _currentIndex == 3,
+                  onTap: () => setState(() => _currentIndex = 3),
+                ),
+                _NavItem(
+                  icon: CupertinoIcons.person,
+                  activeIcon: CupertinoIcons.person_fill,
+                  label: 'Me',
+                  isActive: _currentIndex == 4,
+                  onTap: () => setState(() => _currentIndex = 4),
+                ),
+              ],
             ),
           ),
         ),
@@ -106,9 +103,90 @@ class _MainNavState extends State<MainNav> {
   }
 }
 
-class _NavItem {
+class _NavItem extends StatelessWidget {
   final IconData icon;
   final IconData activeIcon;
   final String label;
-  _NavItem({required this.icon, required this.activeIcon, required this.label});
+  final bool isActive;
+  final VoidCallback onTap;
+  final bool isCenter;
+
+  const _NavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+    this.isCenter = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isCenter) {
+      return GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: isActive
+                ? const LinearGradient(
+                    colors: [AppColors.mint, AppColors.purple],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: isActive ? null : Colors.white.withOpacity(0.08),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: AppColors.mint.withOpacity(0.3),
+                      blurRadius: 16,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Icon(
+            isActive ? activeIcon : icon,
+            color: Colors.white,
+            size: 24,
+          ),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: isActive ? AppColors.mint.withOpacity(0.1) : Colors.transparent,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isActive ? activeIcon : icon,
+              color: isActive ? AppColors.mint : AppColors.mutedDark,
+              size: 22,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: isActive ? AppColors.mint : AppColors.mutedDark,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
