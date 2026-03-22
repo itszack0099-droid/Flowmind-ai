@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 class GroqService {
   static const String _baseUrl =
       'https://api.groq.com/openai/v1/chat/completions';
-  static const String _model = 'llama3-8b-8192';
+  static const String _model = 'llama-3.3-70b-versatile';
   static const String _apiKey =
       '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';
 
