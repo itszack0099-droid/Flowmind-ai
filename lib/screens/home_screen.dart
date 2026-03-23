@@ -9,6 +9,7 @@ import 'brain_dump_screen.dart';
 import 'ai_chat_screen.dart';
 import 'exam_room_screen.dart';
 import 'analytics_screen.dart';
+import 'candle_focus_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -110,11 +111,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            _buildModalField(titleController, 'Task Title', CupertinoIcons.pencil),
+            _buildModalField(
+                titleController, 'Task Title', CupertinoIcons.pencil),
             const SizedBox(height: 12),
-            _buildModalField(subjectController, 'Subject', CupertinoIcons.book),
+            _buildModalField(
+                subjectController, 'Subject', CupertinoIcons.book),
             const SizedBox(height: 12),
-            _buildModalField(timeController, 'Time (e.g. 9:00 AM)', CupertinoIcons.clock),
+            _buildModalField(timeController, 'Time (e.g. 9:00 AM)',
+                CupertinoIcons.clock),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
@@ -217,8 +221,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final streak = _profile?['streak'] ?? 0;
     final xpRequired = _getLevelXPRequired(level);
     final xpProgress = (xp / xpRequired).clamp(0.0, 1.0);
-    final levels = ['Beginner', 'Student', 'Scholar', 'Expert', 'Master', 'Legend'];
-    final levelTitle = level <= levels.length ? levels[level - 1] : 'Legend';
+    final levels = [
+      'Beginner', 'Student', 'Scholar',
+      'Expert', 'Master', 'Legend'
+    ];
+    final levelTitle =
+        level <= levels.length ? levels[level - 1] : 'Legend';
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
@@ -237,9 +245,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       Container(
                         width: 46,
                         height: 46,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: const LinearGradient(
+                          gradient: LinearGradient(
                             colors: [AppColors.mint, AppColors.purple],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -354,8 +362,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             setState(() => _selectedDateIndex = index),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 250),
-                          margin:
-                              const EdgeInsets.symmetric(horizontal: 4),
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
                           width: 50,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(14),
@@ -441,20 +448,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                             AppColors.mint,
                                             AppColors.purple
                                           ]),
-                                      borderRadius:
-                                          BorderRadius.circular(20),
+                                      borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(
-                                            CupertinoIcons.star_fill,
-                                            color: Colors.white,
-                                            size: 11),
+                                        const Icon(CupertinoIcons.star_fill,
+                                            color: Colors.white, size: 11),
                                         const SizedBox(width: 5),
                                         Text(
                                           'Level $level  —  $levelTitle',
-                                          style:
-                                              GoogleFonts.plusJakartaSans(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w700,
                                             color: Colors.white,
@@ -466,15 +469,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const Spacer(),
                                   Row(
                                     children: [
-                                      const Icon(
-                                          CupertinoIcons.flame_fill,
-                                          color: AppColors.orangeRed,
-                                          size: 16),
+                                      const Icon(CupertinoIcons.flame_fill,
+                                          color: AppColors.orangeRed, size: 16),
                                       const SizedBox(width: 5),
                                       Text(
                                         '$streak Day Streak',
-                                        style:
-                                            GoogleFonts.plusJakartaSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w700,
                                           color: AppColors.orangeRed,
@@ -498,7 +498,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   ),
                                   Text(
-                                    '$xpRequired XP to Level ${level + 1}',
+                                                                        '$xpRequired XP to Level ${level + 1}',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       color: isDark
@@ -559,11 +559,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(width: 10),
                           _QuickAction(
-                            icon: CupertinoIcons.book,
-                            label: 'Study\nMode',
-                            color: AppColors.purple,
+                            icon: CupertinoIcons.flame,
+                            label: 'Focus\nMode',
+                            color: Color(0xFFFF8C42),
                             onTap: () =>
-                                _navigateTo(const AiChatScreen()),
+                                _navigateTo(const CandleFocusScreen()),
                           ),
                           const SizedBox(width: 10),
                           _QuickAction(
@@ -659,9 +659,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(40),
                       child: Center(
-                        child: CircularProgressIndicator(
-                            color: AppColors.mint),
-                      ),
+                          child: CircularProgressIndicator(
+                              color: AppColors.mint)),
                     ),
                   )
                 : _tasks.isEmpty
@@ -677,24 +676,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Icon(CupertinoIcons.checkmark_circle,
                                     color: AppColors.mutedDark, size: 40),
                                 const SizedBox(height: 12),
-                                Text(
-                                  'No tasks yet',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark
-                                        ? AppColors.textLight
-                                        : AppColors.textDark,
-                                  ),
-                                ),
+                                Text('No tasks yet',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? AppColors.textLight
+                                          : AppColors.textDark,
+                                    )),
                                 const SizedBox(height: 4),
-                                Text(
-                                  'Tap + to add your first task',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13,
-                                    color: AppColors.mutedDark,
-                                  ),
-                                ),
+                                Text('Tap + to add your first task',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 13,
+                                      color: AppColors.mutedDark,
+                                    )),
                               ],
                             ),
                           ),
@@ -704,8 +699,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             final task = _tasks[index];
-                            final color =
-                                _taskColors[index % _taskColors.length];
+                            final color = _taskColors[
+                                index % _taskColors.length];
                             final icon =
                                 _taskIcons[index % _taskIcons.length];
                             final isDone = task['is_done'] as bool;
@@ -746,15 +741,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                               style: GoogleFonts
                                                   .plusJakartaSans(
                                                 fontSize: 14,
-                                                fontWeight:
-                                                    FontWeight.w600,
+                                                fontWeight: FontWeight.w600,
                                                 color: isDone
                                                     ? AppColors.mutedDark
                                                     : (isDark
-                                                        ? AppColors
-                                                            .textLight
-                                                        : AppColors
-                                                            .textDark),
+                                                        ? AppColors.textLight
+                                                        : AppColors.textDark),
                                                 decoration: isDone
                                                     ? TextDecoration
                                                         .lineThrough
@@ -769,8 +761,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 const Icon(
                                                     CupertinoIcons.clock,
                                                     size: 11,
-                                                    color: AppColors
-                                                        .mutedDark),
+                                                    color:
+                                                        AppColors.mutedDark),
                                                 const SizedBox(width: 4),
                                                 Text(
                                                   task['time'] ?? 'All Day',
@@ -782,23 +774,22 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 ),
                                                 const SizedBox(width: 8),
                                                 Container(
-                                                  width: 3,
-                                                  height: 3,
-                                                  decoration: const BoxDecoration(
-                                                    shape: BoxShape.circle,
-                                                    color: AppColors.mutedDark,
-                                                  ),
-                                                ),
+                                                    width: 3,
+                                                    height: 3,
+                                                    decoration: const BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                        color: AppColors
+                                                            .mutedDark)),
                                                 const SizedBox(width: 8),
                                                 Text(
-                                                  task['subject'] ?? 'General',
+                                                  task['subject'] ??
+                                                      'General',
                                                   style: GoogleFonts
                                                       .plusJakartaSans(
                                                     fontSize: 11,
                                                     color: color.withOpacity(
                                                         isDone ? 0.4 : 0.9),
-                                                    fontWeight:
-                                                        FontWeight.w600,
+                                                    fontWeight: FontWeight.w600,
                                                   ),
                                                 ),
                                               ],
@@ -807,8 +798,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                       ),
                                       GestureDetector(
-                                        onTap: () => _toggleTask(
-                                            task['id'], !isDone),
+                                        onTap: () =>
+                                            _toggleTask(task['id'], !isDone),
                                         child: AnimatedContainer(
                                           duration: const Duration(
                                               milliseconds: 200),
@@ -831,8 +822,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     width: 1.5),
                                           ),
                                           child: isDone
-                                              ? const Icon(
-                                                  Icons.check_rounded,
+                                              ? const Icon(Icons.check_rounded,
                                                   color: Colors.white,
                                                   size: 16)
                                               : null,
@@ -903,10 +893,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
                                     color: isDark
-                                        ? AppColors.textLight
-                                            .withOpacity(0.8)
-                                        : AppColors.textDark
-                                            .withOpacity(0.8),
+                                                                            ? AppColors.textLight.withOpacity(0.8)
+                                        : AppColors.textDark.withOpacity(0.8),
                                     height: 1.5,
                                   ),
                                 ),
