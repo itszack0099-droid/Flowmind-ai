@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "82212606621",
+    "project_id": "studio-7713288452-31b03",
+    "storage_bucket": "studio-7713288452-31b03.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:82212606621:android:38b3d5f7872e0b3e49fa74",
+        "android_client_info": {
+          "package_name": "com.flowmind.flowmind"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDD84iynxaCGQMW8-2o3YDvPF-5ZIl8cqk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
