@@ -44,10 +44,27 @@ jobs:
 
       - name: Add Firebase to build.gradle
         run: |
-          echo "" >> android/build.gradle
-          echo "buildscript { dependencies { classpath 'com.google.gms:google-services:4.4.0' } }" >> android/build.gradle
+          cat > android/build.gradle << 'EOF'
+          buildscript {
+            repositories {
+              google()
+              mavenCentral()
+            }
+            dependencies {
+              classpath 'com.android.tools.build:gradle:7.3.0'
+              classpath 'com.google.gms:google-services:4.4.0'
+            }
+          }
+          allprojects {
+            repositories {
+              google()
+              mavenCentral()
+            }
+          }
+          EOF
           echo "" >> android/app/build.gradle
           echo "apply plugin: 'com.google.gms.google-services'" >> android/app/build.gradle
+          echo "Firebase build.gradle updated!"
 
       - name: Add Permissions and Deep Link
         run: |
