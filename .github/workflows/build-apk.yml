@@ -23,7 +23,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.19.0'
           channel: 'stable'
           cache: true
 
@@ -44,15 +44,15 @@ jobs:
 
       - name: Add Firebase to build.gradle
         run: |
-          cat > android/build.gradle << 'EOF'
+          cat > android/build.gradle << 'GRADLE'
           buildscript {
-            ext.kotlin_version = '1.9.10'
+            ext.kotlin_version = '1.8.22'
             repositories {
               google()
               mavenCentral()
             }
             dependencies {
-              classpath 'com.android.tools.build:gradle:8.1.0'
+              classpath 'com.android.tools.build:gradle:7.3.0'
               classpath 'com.google.gms:google-services:4.4.0'
               classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
             }
@@ -63,17 +63,16 @@ jobs:
               mavenCentral()
             }
           }
-          EOF
-          # Fix compileSdkVersion and minSdkVersion
-          sed -i 's/compileSdk flutter.compileSdkVersion/compileSdk 34/' android/app/build.gradle
+          GRADLE
           sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/' android/app/build.gradle
+          sed -i 's/compileSdk flutter.compileSdkVersion/compileSdk 34/' android/app/build.gradle
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/' android/app/build.gradle
           sed -i 's/minSdk flutter.minSdkVersion/minSdk 21/' android/app/build.gradle
           sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/' android/app/build.gradle
           sed -i 's/targetSdk flutter.targetSdkVersion/targetSdk 34/' android/app/build.gradle
           echo "" >> android/app/build.gradle
           echo "apply plugin: 'com.google.gms.google-services'" >> android/app/build.gradle
-          echo "Firebase build.gradle updated!"
+          echo "Build gradle updated!"
 
       - name: Add Permissions and Deep Link
         run: |
