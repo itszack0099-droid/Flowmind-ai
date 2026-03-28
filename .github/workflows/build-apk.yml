@@ -36,44 +36,6 @@ jobs:
           cp temp_project/analysis_options.yaml ./analysis_options.yaml || true
           rm -rf temp_project
 
-      - name: Copy google-services.json
-        run: |
-          mkdir -p android/app
-          cp google-services.json android/app/google-services.json
-          echo "google-services.json copied!"
-
-      - name: Add Firebase to build.gradle
-        run: |
-          cat > android/build.gradle << 'GRADLE'
-          buildscript {
-            ext.kotlin_version = '1.8.22'
-            repositories {
-              google()
-              mavenCentral()
-            }
-            dependencies {
-              classpath 'com.android.tools.build:gradle:7.3.0'
-              classpath 'com.google.gms:google-services:4.4.0'
-              classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-            }
-          }
-          allprojects {
-            repositories {
-              google()
-              mavenCentral()
-            }
-          }
-          GRADLE
-          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/' android/app/build.gradle
-          sed -i 's/compileSdk flutter.compileSdkVersion/compileSdk 34/' android/app/build.gradle
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/' android/app/build.gradle
-          sed -i 's/minSdk flutter.minSdkVersion/minSdk 21/' android/app/build.gradle
-          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/' android/app/build.gradle
-          sed -i 's/targetSdk flutter.targetSdkVersion/targetSdk 34/' android/app/build.gradle
-          echo "" >> android/app/build.gradle
-          echo "apply plugin: 'com.google.gms.google-services'" >> android/app/build.gradle
-          echo "Build gradle updated!"
-
       - name: Add Permissions and Deep Link
         run: |
           python3 - <<'EOF'
@@ -81,7 +43,7 @@ jobs:
               content = f.read()
           if 'INTERNET' not in content:
               content = content.replace('<application',
-                  '<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.VIBRATE"/>\n    <application')
+                  '<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.VIBRATE"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <application')
           if 'flowmind' not in content:
               content = content.replace('</activity>',
                   '''    <intent-filter>
@@ -91,12 +53,6 @@ jobs:
                       <data android:scheme="flowmind"/>
                   </intent-filter>
               </activity>''')
-          if 'MESSAGING_EVENT' not in content:
-              content = content.replace('</application>',
-                  '''    <service android:name="com.google.firebase.messaging.FirebaseMessagingService" android:exported="false">
-              <intent-filter><action android:name="com.google.firebase.MESSAGING_EVENT"/></intent-filter>
-          </service>
-          </application>''')
           with open('android/app/src/main/AndroidManifest.xml', 'w') as f:
               f.write(content)
           print("AndroidManifest.xml updated!")
