@@ -589,4 +589,187 @@ class _AiChatScreenState extends State<AiChatScreen> {
                                         Flexible(
                                           child: Text(
                                             msg['text']!,
-                                            style: 
+style: GoogleFonts.plusJakartaSans(
+  fontSize: 14,
+  color: isAI
+      ? AppColors.textLight
+      : Colors.white,
+  height: 1.4,
+),
+),
+],
+),
+),
+),
+],
+),
+);
+}
+
+Widget _buildTypingIndicator() {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 14),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [
+                AppColors.mint,
+                AppColors.purple,
+              ],
+            ),
+          ),
+          child: const Icon(
+            Icons.auto_awesome_rounded,
+            color: Colors.white,
+            size: 14,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.08),
+            ),
+          ),
+          child: Row(
+            children: const [
+              SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(width: 8),
+              Text(
+                "Thinking...",
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildSuggestions() {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 16),
+    child: Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _suggestions.map((text) {
+        return GestureDetector(
+          onTap: () => _sendMessage(text),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 10,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: Colors.white.withOpacity(0.06),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.08),
+              ),
+            ),
+            child: Text(
+              text,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: AppColors.textLight,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    ),
+  );
+}
+
+Widget _buildInputArea() {
+  final isDark =
+      Theme.of(context).brightness == Brightness.dark;
+
+  return Container(
+    padding: const EdgeInsets.fromLTRB(
+        12, 10, 12, 10),
+    decoration: BoxDecoration(
+      border: Border(
+        top: BorderSide(
+          color: Colors.white.withOpacity(0.07),
+        ),
+      ),
+    ),
+    child: Row(
+      children: [
+        IconButton(
+          onPressed: _handleFilePick,
+          icon: const Icon(
+            CupertinoIcons.paperclip,
+            color: Colors.white,
+          ),
+        ),
+
+        Expanded(
+          child: TextField(
+            controller: _controller,
+            style: GoogleFonts.plusJakartaSans(
+              color: isDark
+                  ? AppColors.textLight
+                  : AppColors.textDark,
+            ),
+            decoration: InputDecoration(
+              hintText: "Type a message...",
+              hintStyle: GoogleFonts.plusJakartaSans(
+                color: isDark
+                    ? AppColors.mutedDark
+                    : AppColors.mutedLight,
+              ),
+              border: InputBorder.none,
+            ),
+            onSubmitted: _sendMessage,
+          ),
+        ),
+
+        GestureDetector(
+          onTap: () =>
+              _sendMessage(_controller.text),
+          child: Container(
+            width: 42,
+            height: 42,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.mint,
+                  AppColors.purple,
+                ],
+              ),
+            ),
+            child: const Icon(
+              Icons.send_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+}
