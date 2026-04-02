@@ -7,7 +7,6 @@ on:
 
 jobs:
   build-apk:
-    name: Build Android APK
     runs-on: ubuntu-latest
 
     steps:
@@ -15,93 +14,80 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.0'
-          channel: 'stable'
+          channel: stable
           cache: true
 
-      - name: Create Flutter project scaffold
+      - name: Create Android scaffold if missing
         run: |
-          flutter create --org com.flowmind --project-name flowmind temp_project
-          cp -r temp_project/android ./android
-          cp -r temp_project/ios ./ios
-          cp -r temp_project/web ./web
-          cp temp_project/analysis_options.yaml ./analysis_options.yaml || true
-          rm -rf temp_project
+          if [ ! -d android ]; then
+            flutter create .
+          fi
 
       - name: Fix Gradle permission
         run: chmod +x android/gradlew
 
-      - name: Add Permissions and Deep Link
+      # FORCE V2 EMBEDDING (REAL FIX)
+      - name: Force Android V2 Embedding
         run: |
-          python3 - <<'EOF'
-          with open('android/app/src/main/AndroidManifest.xml', 'r') as f:
-              content = f.read()
+          mkdir -p android/app/src/main/kotlin/com/flowmind
 
-          if 'INTERNET' not in content:
-              content = content.replace(
-                  '<application',
-                  '<uses-permission android:name="android.permission.INTERNET"/>\n'
-                  '<uses-permission android:name="android.permission.VIBRATE"/>\n'
-                  '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n'
-                  '<application'
-              )
+          cat > android/app/src/main/kotlin/com/flowmind/MainActivity.kt <<'EOF'
+          package com.flowmind
 
-          if 'flowmind' not in content:
-              content = content.replace(
-                  '</activity>',
-                  '''    <intent-filter>
-                      <action android:name="android.intent.action.VIEW"/>
-                      <category android:name="android.intent.category.DEFAULT"/>
-                      <category android:name="android.intent.category.BROWSABLE"/>
-                      <data android:scheme="flowmind"/>
-                  </intent-filter>
-              </activity>'''
-              )
+          import io.flutter.embedding.android.FlutterActivity
 
-          with open('android/app/src/main/AndroidManifest.xml', 'w') as f:
-              f.write(content)
-
-          print("AndroidManifest.xml updated!")
+          class MainActivity: FlutterActivity() {
+          }
           EOF
 
-      - name: Enable Android V2 Embedding
+          echo "V2 MainActivity ensured."
+
+      - name: Ensure Manifest metadata
         run: |
           python3 - <<'EOF'
-          with open('android/app/src/main/AndroidManifest.xml', 'r') as f:
+          path = "android/app/src/main/AndroidManifest.xml"
+
+          with open(path, "r") as f:
               content = f.read()
 
-          if 'flutterEmbedding' not in content:
+          if "flutterEmbedding" not in content:
               content = content.replace(
-                  '<application',
+                  "<application",
                   '<meta-data android:name="flutterEmbedding" android:value="2"/>\n    <application'
               )
 
-          with open('android/app/src/main/AndroidManifest.xml', 'w') as f:
+          if "INTERNET" not in content:
+              content = content.replace(
+                  "<application",
+                  '<uses-permission android:name="android.permission.INTERNET"/>\n'
+                  '<uses-permission android:name="android.permission.VIBRATE"/>\n'
+                  '<application'
+              )
+
+          with open(path, "w") as f:
               f.write(content)
 
-          print("V2 embedding enabled!")
+          print("Manifest fixed.")
           EOF
 
-      - name: Create assets directory
-        run: mkdir -p assets/images
-
-      # ✅ AUTO FIX logo.png if missing
-      - name: Ensure logo.png exists
+      - name: Ensure logo exists
         run: |
+          mkdir -p assets/images
+
           if [ ! -f assets/images/logo.png ]; then
-            echo "logo.png not found, creating default icon..."
             sudo apt-get update
             sudo apt-get install -y imagemagick
-            convert -size 512x512 xc:blue \
+            convert -size 512x512 xc:#4F46E5 \
               -gravity center \
               -pointsize 72 \
               -fill white \
@@ -112,7 +98,7 @@ jobs:
       - name: Install ImageMagick
         run: sudo apt-get update && sudo apt-get install -y imagemagick
 
-      - name: Set App Icon
+      - name: Generate App Icons
         run: |
           mkdir -p android/app/src/main/res/mipmap-hdpi
           mkdir -p android/app/src/main/res/mipmap-mdpi
@@ -126,9 +112,10 @@ jobs:
           convert assets/images/logo.png -resize 144x144 android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
           convert assets/images/logo.png -resize 192x192 android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
-      - name: Install Dependencies
+      - name: Clean and install dependencies
         run: |
           flutter clean
+          rm -f pubspec.lock
           flutter pub get
 
       - name: Analyze Code
@@ -150,5 +137,5 @@ jobs:
 
       - name: Show APK Size
         run: |
-          echo "Build Successful!"
+          echo "Build Successful"
           ls -lh build/app/outputs/flutter-apk/*.apk
