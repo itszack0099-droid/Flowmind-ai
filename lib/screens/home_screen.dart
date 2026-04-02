@@ -1,4 +1,3 @@
-import 'flashcards_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:animate_do/animate_do.dart';
@@ -10,7 +9,7 @@ import '../widgets/banner_ad_widget.dart'; // ⭐ ADDED
 import '../services/supabase_service.dart';
 
 import 'brain_dump_screen.dart';
-import 'ai_chat_screen.dart';
+import 'flashcards_screen.dart';
 import 'exam_room_screen.dart';
 import 'analytics_screen.dart';
 import 'candle_focus_screen.dart';
@@ -439,11 +438,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
 
                     _buildActionCard(
-                      "AI Chat",
-                      CupertinoIcons
-                          .chat_bubble,
-                      () => _navigateTo(
-                        const AiChatScreen(),
+                      "Flash\nCards",
+     
+                      CupertinoIcons.rectangle_stack_badge_person_crop,
+                       () => _navigateTo(
+                          const FlashcardsScreen(),
+                         ),
+                        ),
                       ),
                     ),
 
