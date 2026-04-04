@@ -6,7 +6,7 @@ class GroqService {
       'https://api.groq.com/openai/v1/chat/completions';
   static const String _model = 'llama-3.3-70b-versatile';
   static const String _apiKey =
-      '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';
+      'GROQ_API_KEY';
 
   static Future<String> _sendRequest({
     required List<Map<String, String>> messages,
