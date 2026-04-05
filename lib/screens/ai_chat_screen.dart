@@ -4,7 +4,8 @@ import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 import '../theme/app_theme.dart';
-import '../services/groq_service.dart';
+import '../services/local_llm_service.dart';
+import '../services/model_downloader.dart';
 import '../services/summarizer_service.dart';
 
 class AiChatScreen extends StatefulWidget {
@@ -18,16 +19,22 @@ class _AiChatScreenState extends State<AiChatScreen> {
   final _controller = TextEditingController();
   final _urlController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final LocalLLMService _llm = LocalLLMService();
+
   bool _isTyping = false;
   bool _showAttachMenu = false;
   bool _showYoutubeInput = false;
+
+  bool _modelLoaded = false;
+  bool _downloadConfirmed = false;
+  String _modelStatus = "AI Model download ho raha hai...";
+  double _downloadProgress = 0.0;
 
   final List<Map<String, String>> _history = [];
   final List<Map<String, dynamic>> _messages = [
     {
       'role': 'ai',
-      'text':
-          'Hello! I am your AI Mentor. Ask me anything, or use the attachment button to summarize YouTube videos, PDFs, audio files, and more!',
+      'text': 'Hello! I am your AI Mentor. Ask me anything, or use the attachment button to summarize YouTube videos, PDFs, audio files, and more!',
       'time': '10:00 AM',
     },
   ];
@@ -39,9 +46,59 @@ class _AiChatScreenState extends State<AiChatScreen> {
     'I am feeling stuck',
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _showDownloadConfirmation();
+  }
+
+  void _showDownloadConfirmation() {
+    if (_downloadConfirmed) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        title: const Text("🚀 Download AI Model?", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text("We need to download \~398 MB model for offline & unlimited use.\n\nOnce downloaded, everything works without internet forever."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Not now"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() => _downloadConfirmed = true);
+              _initializeLocalModel();
+            },
+            child: const Text("Download Now"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _initializeLocalModel() async {
+    await _llm.initializeModel(
+      onDownloadProgress: (progress) {
+        if (mounted) setState(() => _downloadProgress = progress);
+      },
+      onStatusUpdate: (status) {
+        if (mounted) {
+          setState(() {
+            _modelStatus = status;
+            if (status.contains("ready")) _modelLoaded = true;
+          });
+        }
+      },
+    );
+  }
+
   void _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
     final time = TimeOfDay.now().format(context);
+
     setState(() {
       _messages.add({'role': 'user', 'text': text, 'time': time});
       _history.add({'role': 'user', 'content': text});
@@ -50,12 +107,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     });
     _scrollToBottom();
 
-    final response = await GroqService.chat(
-      userMessage: text,
-      history: _history.length > 10
-          ? _history.sublist(_history.length - 10)
-          : _history,
-    );
+    final response = await _llm.getResponse(text);
 
     if (mounted) {
       setState(() {
@@ -94,8 +146,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
       });
     });
   }
-
-  // ─── ATTACHMENT HANDLERS ─────────────────────────────
 
   void _toggleAttachMenu() {
     setState(() {
@@ -177,8 +227,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
-  void _processContent(
-      String transcript, String action, String fileName) async {
+  void _processContent(String transcript, String action, String fileName) async {
     if (transcript.startsWith('ERROR:')) {
       setState(() {
         _messages.add({
@@ -229,7 +278,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
     }
   }
 
-  // YouTube
   void _handleYouTube() async {
     final url = _urlController.text.trim();
     if (url.isEmpty) return;
@@ -248,7 +296,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
     _urlController.clear();
     _scrollToBottom();
 
-    // Show loading message
     setState(() {
       _messages.add({
         'role': 'ai',
@@ -259,10 +306,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
     });
     _scrollToBottom();
 
-    final transcript =
-        await SummarizerService.getYouTubeTranscript(url);
+    final transcript = await SummarizerService.getYouTubeTranscript(url);
 
-    // Remove loading message
     setState(() {
       _messages.removeWhere((m) => m['isLoading'] == true);
       _isTyping = false;
@@ -272,8 +317,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       setState(() {
         _messages.add({
           'role': 'ai',
-          'text':
-              'Could not get transcript. Make sure the video has captions/subtitles enabled.',
+          'text': 'Could not get transcript. Make sure the video has captions/subtitles enabled.',
           'time': TimeOfDay.now().format(context),
         });
       });
@@ -282,7 +326,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
     }
   }
 
-  // File picker
   void _handleFilePick() async {
     setState(() {
       _showAttachMenu = false;
@@ -291,9 +334,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: [
-        'pdf', 'docx', 'txt', 'mp3', 'mp4', 'wav', 'm4a', 'webm'
-      ],
+      allowedExtensions: ['pdf', 'docx', 'txt', 'mp3', 'mp4', 'wav', 'm4a', 'webm'],
     );
 
     if (result == null || result.files.isEmpty) return;
@@ -365,9 +406,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
       _showActionPicker(text, name);
     }
   }
-
-  @override
+@override
   void dispose() {
+    _llm.dispose();
     _controller.dispose();
     _urlController.dispose();
     _scrollController.dispose();
@@ -383,16 +424,13 @@ class _AiChatScreenState extends State<AiChatScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
+            // Header with model status
             FadeInDown(
               duration: const Duration(milliseconds: 400),
               child: Container(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                 decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                        color: Colors.white.withOpacity(0.07)),
-                  ),
+                  border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.07))),
                 ),
                 child: Row(
                   children: [
@@ -401,18 +439,10 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       height: 44,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [AppColors.mint, AppColors.purple],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.mint.withOpacity(0.3),
-                            blurRadius: 12,
-                          ),
-                        ],
+                        gradient: const LinearGradient(colors: [AppColors.mint, AppColors.purple]),
+                        boxShadow: [BoxShadow(color: AppColors.mint.withOpacity(0.3), blurRadius: 12)],
                       ),
-                      child: const Icon(Icons.auto_awesome_rounded,
-                          color: Colors.white, size: 20),
+                      child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -424,30 +454,17 @@ class _AiChatScreenState extends State<AiChatScreen> {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? AppColors.textLight
-                                  : AppColors.textDark,
+                              color: isDark ? AppColors.textLight : AppColors.textDark,
                             ),
                           ),
                           Row(
                             children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.mint,
-                                ),
-                              ),
-                              const SizedBox(width: 5),
+                              if (!_modelLoaded && _downloadConfirmed)
+                                const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2)),
+                              const SizedBox(width: 6),
                               Text(
-                                _isTyping
-                                    ? 'Thinking...'
-                                    : 'Online — Always ready',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 11,
-                                  color: AppColors.mint,
-                                ),
+                                _modelLoaded ? "Offline — Unlimited AI" : _modelStatus,
+                                style: GoogleFonts.plusJakartaSans(fontSize: 11, color: _modelLoaded ? AppColors.mint : Colors.orange),
                               ),
                             ],
                           ),
@@ -462,14 +479,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10),
                           color: Colors.white.withOpacity(0.06),
-                          border: Border.all(
-                              color: Colors.white.withOpacity(0.1)),
+                          border: Border.all(color: Colors.white.withOpacity(0.1)),
                         ),
-                        child: Icon(CupertinoIcons.trash,
-                            color: isDark
-                                ? AppColors.mutedDark
-                                : AppColors.mutedLight,
-                            size: 16),
+                        child: Icon(CupertinoIcons.trash, color: isDark ? AppColors.mutedDark : AppColors.mutedLight, size: 16),
                       ),
                     ),
                   ],
@@ -477,29 +489,21 @@ class _AiChatScreenState extends State<AiChatScreen> {
               ),
             ),
 
+            // Download Progress Bar
+            if (_downloadConfirmed && _downloadProgress > 0 && _downloadProgress < 1)
+              LinearProgressIndicator(value: _downloadProgress, minHeight: 6),
+
             // Messages
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
-                padding:
-                    const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                itemCount: _messages.length +
-                    (_isTyping ? 1 : 0) +
-                    (_messages.length == 1 ? 1 : 0),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                itemCount: _messages.length + (_isTyping ? 1 : 0) + (_messages.length == 1 ? 1 : 0),
                 itemBuilder: (context, index) {
-                  if (_messages.length == 1 && index == 1) {
-                    return _buildSuggestions();
-                  }
-                  final msgIndex =
-                      _messages.length == 1 ? index - 1 : index;
-                  if (_isTyping &&
-                      msgIndex == _messages.length) {
-                    return _buildTypingIndicator();
-                  }
-                  if (msgIndex < 0 ||
-                      msgIndex >= _messages.length) {
-                    return const SizedBox();
-                  }
+                  if (_messages.length == 1 && index == 1) return _buildSuggestions();
+                  final msgIndex = _messages.length == 1 ? index - 1 : index;
+                  if (_isTyping && msgIndex == _messages.length) return _buildTypingIndicator();
+                  if (msgIndex < 0 || msgIndex >= _messages.length) return const SizedBox();
                   final msg = _messages[msgIndex];
                   final isAI = msg['role'] == 'ai';
                   final isFile = msg['isFile'] == true;
@@ -509,27 +513,15 @@ class _AiChatScreenState extends State<AiChatScreen> {
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 14),
                       child: Row(
-                        mainAxisAlignment: isAI
-                            ? MainAxisAlignment.start
-                            : MainAxisAlignment.end,
-                        crossAxisAlignment:
-                            CrossAxisAlignment.end,
+                        mainAxisAlignment: isAI ? MainAxisAlignment.start : MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           if (isAI) ...[
                             Container(
                               width: 30,
                               height: 30,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(colors: [
-                                  AppColors.mint,
-                                  AppColors.purple
-                                ]),
-                              ),
-                              child: const Icon(
-                                  Icons.auto_awesome_rounded,
-                                  color: Colors.white,
-                                  size: 14),
+                              decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [AppColors.mint, AppColors.purple])),
+                              child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 14),
                             ),
                             const SizedBox(width: 8),
                           ],
@@ -539,78 +531,36 @@ class _AiChatScreenState extends State<AiChatScreen> {
                               decoration: BoxDecoration(
                                 gradient: !isAI
                                     ? (isFile
-                                        ? const LinearGradient(
-                                            colors: [
-                                              Color(0xFF38B6FF),
-                                              AppColors.purple
-                                            ],
-                                          )
-                                        : const LinearGradient(
-                                            colors: [
-                                              AppColors.mint,
-                                              AppColors.purple
-                                            ],
-                                          ))
+                                        ? const LinearGradient(colors: [Color(0xFF38B6FF), AppColors.purple])
+                                        : const LinearGradient(colors: [AppColors.mint, AppColors.purple]))
                                     : null,
-                                color: isAI
-                                    ? Colors.white.withOpacity(0.06)
-                                    : null,
+                                color: isAI ? Colors.white.withOpacity(0.06) : null,
                                 borderRadius: BorderRadius.only(
-                                  topLeft:
-                                      const Radius.circular(18),
-                                  topRight:
-                                      const Radius.circular(18),
-                                  bottomLeft: Radius.circular(
-                                      isAI ? 4 : 18),
-                                  bottomRight: Radius.circular(
-                                      isAI ? 18 : 4),
+                                  topLeft: const Radius.circular(18),
+                                  topRight: const Radius.circular(18),
+                                  bottomLeft: Radius.circular(isAI ? 4 : 18),
+                                  bottomRight: Radius.circular(isAI ? 18 : 4),
                                 ),
-                                border: isAI
-                                    ? Border.all(
-                                        color: Colors.white
-                                            .withOpacity(0.08))
-                                    : null,
+                                border: isAI ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
                               ),
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   if (isFile && !isAI) ...[
                                     Row(
-                                      mainAxisSize:
-                                          MainAxisSize.min,
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(
-                                            CupertinoIcons
-                                                .paperclip,
-                                            color: Colors.white,
-                                            size: 14),
+                                        const Icon(CupertinoIcons.paperclip, color: Colors.white, size: 14),
                                         const SizedBox(width: 6),
-                                        Flexible(
-                                          child: Text(
-                                            msg['text']!,
-                                            style: GoogleFonts
-                                                .plusJakartaSans(
-                                              fontSize: 13,
-                                              color: Colors.white,
-                                              fontWeight:
-                                                  FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
+                                        Flexible(child: Text(msg['text']!, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600))),
                                       ],
                                     ),
                                   ] else ...[
                                     Text(
                                       msg['text']!,
-                                      style: GoogleFonts
-                                          .plusJakartaSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
-                                        color: isAI
-                                            ? (isDark
-                                                ? AppColors.textLight
-                                                : AppColors.textDark)
-                                            : Colors.white,
+                                        color: isAI ? (isDark ? AppColors.textLight : AppColors.textDark) : Colors.white,
                                         height: 1.6,
                                       ),
                                     ),
@@ -618,14 +568,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     msg['time']!,
-                                    style:
-                                        GoogleFonts.plusJakartaSans(
-                                      fontSize: 10,
-                                      color: isAI
-                                          ? AppColors.mutedDark
-                                          : Colors.white
-                                              .withOpacity(0.6),
-                                    ),
+                                    style: GoogleFonts.plusJakartaSans(fontSize: 10, color: isAI ? AppColors.mutedDark : Colors.white.withOpacity(0.6)),
                                   ),
                                 ],
                               ),
@@ -649,29 +592,20 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.surfaceDark,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                        color: AppColors.mint.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.mint.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(CupertinoIcons.play_circle,
-                          color: AppColors.orangeRed, size: 20),
+                      const Icon(CupertinoIcons.play_circle, color: AppColors.orangeRed, size: 20),
                       const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
                           controller: _urlController,
                           autofocus: true,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13,
-                            color: AppColors.textLight,
-                          ),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.textLight),
                           decoration: InputDecoration(
-                            hintText:
-                                'Paste YouTube URL...',
-                            hintStyle: GoogleFonts.plusJakartaSans(
-                              fontSize: 13,
-                              color: AppColors.mutedDark,
-                            ),
+                            hintText: 'Paste YouTube URL...',
+                            hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.mutedDark),
                             border: InputBorder.none,
                             isDense: true,
                           ),
@@ -681,22 +615,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       GestureDetector(
                         onTap: _handleYouTube,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                                colors: [
-                                  AppColors.mint,
-                                  AppColors.purple
-                                ]),
+                            gradient: const LinearGradient(colors: [AppColors.mint, AppColors.purple]),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text('Go',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              )),
+                          child: Text('Go', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
                         ),
                       ),
                     ],
@@ -710,45 +634,19 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 duration: const Duration(milliseconds: 200),
                 child: Container(
                   margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceDark,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                        color: Colors.white.withOpacity(0.08)),
+                    border: Border.all(color: Colors.white.withOpacity(0.08)),
                   ),
                   child: Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceAround,
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _AttachOption(
-                        icon: CupertinoIcons.play_rectangle,
-                        label: 'YouTube',
-                        color: AppColors.orangeRed,
-                        onTap: () => setState(() {
-                          _showYoutubeInput = true;
-                          _showAttachMenu = false;
-                        }),
-                      ),
-                      _AttachOption(
-                        icon: CupertinoIcons.doc_text,
-                        label: 'PDF/Doc',
-                        color: AppColors.mint,
-                        onTap: _handleFilePick,
-                      ),
-                      _AttachOption(
-                        icon: CupertinoIcons.music_note,
-                        label: 'Audio',
-                        color: AppColors.purple,
-                        onTap: _handleFilePick,
-                      ),
-                      _AttachOption(
-                        icon: CupertinoIcons.doc_plaintext,
-                        label: 'Text',
-                        color: Color(0xFF38B6FF),
-                        onTap: _handleFilePick,
-                      ),
+                      _AttachOption(icon: CupertinoIcons.play_rectangle, label: 'YouTube', color: AppColors.orangeRed, onTap: () => setState(() { _showYoutubeInput = true; _showAttachMenu = false; })),
+                      _AttachOption(icon: CupertinoIcons.doc_text, label: 'PDF/Doc', color: AppColors.mint, onTap: _handleFilePick),
+                      _AttachOption(icon: CupertinoIcons.music_note, label: 'Audio', color: AppColors.purple, onTap: _handleFilePick),
+                      _AttachOption(icon: CupertinoIcons.doc_plaintext, label: 'Text', color: Color(0xFF38B6FF), onTap: _handleFilePick),
                     ],
                   ),
                 ),
@@ -756,19 +654,13 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
             // Input bar
             Container(
-              padding:
-                  const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                      color: Colors.white.withOpacity(0.07)),
-                ),
-                color:
-                    isDark ? AppColors.bgDark : AppColors.bgLight,
+                border: Border(top: BorderSide(color: Colors.white.withOpacity(0.07))),
+                color: isDark ? AppColors.bgDark : AppColors.bgLight,
               ),
               child: Row(
                 children: [
-                  // Attachment button
                   GestureDetector(
                     onTap: _toggleAttachMenu,
                     child: AnimatedContainer(
@@ -777,24 +669,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       height: 44,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: _showAttachMenu
-                            ? AppColors.mint.withOpacity(0.15)
-                            : Colors.white.withOpacity(0.06),
-                        border: Border.all(
-                          color: _showAttachMenu
-                              ? AppColors.mint.withOpacity(0.4)
-                              : Colors.white.withOpacity(0.1),
-                        ),
+                        color: _showAttachMenu ? AppColors.mint.withOpacity(0.15) : Colors.white.withOpacity(0.06),
+                        border: Border.all(color: _showAttachMenu ? AppColors.mint.withOpacity(0.4) : Colors.white.withOpacity(0.1)),
                       ),
                       child: Icon(
-                        _showAttachMenu
-                            ? CupertinoIcons.xmark
-                            : CupertinoIcons.paperclip,
-                        color: _showAttachMenu
-                            ? AppColors.mint
-                            : (isDark
-                                ? AppColors.mutedDark
-                                : AppColors.mutedLight),
+                        _showAttachMenu ? CupertinoIcons.xmark : CupertinoIcons.paperclip,
+                        color: _showAttachMenu ? AppColors.mint : (isDark ? AppColors.mutedDark : AppColors.mutedLight),
                         size: 18,
                       ),
                     ),
@@ -805,31 +685,18 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.06),
                         borderRadius: BorderRadius.circular(22),
-                        border: Border.all(
-                            color: Colors.white.withOpacity(0.1)),
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
                       ),
                       child: TextField(
                         controller: _controller,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          color: isDark
-                              ? AppColors.textLight
-                              : AppColors.textDark,
-                        ),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 14, color: isDark ? AppColors.textLight : AppColors.textDark),
                         maxLines: 4,
                         minLines: 1,
                         decoration: InputDecoration(
                           hintText: 'Ask anything...',
-                          hintStyle: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            color: isDark
-                                ? AppColors.mutedDark
-                                : AppColors.mutedLight,
-                          ),
+                          hintStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: isDark ? AppColors.mutedDark : AppColors.mutedLight),
                           border: InputBorder.none,
-                          contentPadding:
-                              const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         ),
                         onSubmitted: _sendMessage,
                       ),
@@ -841,14 +708,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
                     child: Container(
                       width: 44,
                       height: 44,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [AppColors.mint, AppColors.purple],
-                        ),
-                      ),
-                      child: const Icon(CupertinoIcons.arrow_up,
-                          color: Colors.white, size: 18),
+                      decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [AppColors.mint, AppColors.purple])),
+                      child: const Icon(CupertinoIcons.arrow_up, color: Colors.white, size: 18),
                     ),
                   ),
                 ],
@@ -870,21 +731,15 @@ class _AiChatScreenState extends State<AiChatScreen> {
           return GestureDetector(
             onTap: () => _sendMessage(s),
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
                 color: AppColors.mint.withOpacity(0.1),
-                border: Border.all(
-                    color: AppColors.mint.withOpacity(0.25)),
+                border: Border.all(color: AppColors.mint.withOpacity(0.25)),
               ),
               child: Text(
                 s,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.mint,
-                ),
+                style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.mint),
               ),
             ),
           );
@@ -901,18 +756,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
           Container(
             width: 30,
             height: 30,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                  colors: [AppColors.mint, AppColors.purple]),
-            ),
-            child: const Icon(Icons.auto_awesome_rounded,
-                color: Colors.white, size: 14),
+            decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [AppColors.mint, AppColors.purple])),
+            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 14),
           ),
           const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.06),
               borderRadius: const BorderRadius.only(
@@ -921,23 +770,15 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 bottomRight: Radius.circular(18),
                 bottomLeft: Radius.circular(4),
               ),
-              border: Border.all(
-                  color: Colors.white.withOpacity(0.08)),
+              border: Border.all(color: Colors.white.withOpacity(0.08)),
             ),
             child: Row(
-              children: List.generate(
-                3,
-                (i) => Container(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 2),
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.mint.withOpacity(0.6),
-                  ),
-                ),
-              ),
+              children: List.generate(3, (i) => Container(
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.mint.withOpacity(0.6)),
+              )),
             ),
           ),
         ],
@@ -953,12 +794,7 @@ class _AttachOption extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const _AttachOption({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
+  const _AttachOption({required this.icon, required this.label, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -973,20 +809,12 @@ class _AttachOption extends StatelessWidget {
             decoration: BoxDecoration(
               color: color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(14),
-              border:
-                  Border.all(color: color.withOpacity(0.25)),
+              border: Border.all(color: color.withOpacity(0.25)),
             ),
             child: Icon(icon, color: color, size: 22),
           ),
           const SizedBox(height: 6),
-          Text(
-            label,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
+          Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
         ],
       ),
     );
@@ -1001,13 +829,7 @@ class _ActionTile extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const _ActionTile({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
+  const _ActionTile({required this.icon, required this.label, required this.subtitle, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1026,10 +848,7 @@ class _ActionTile extends StatelessWidget {
             Container(
               width: 40,
               height: 40,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(11),
-              ),
+              decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(11)),
               child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(width: 14),
@@ -1037,26 +856,12 @@ class _ActionTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    label,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textLight,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      color: AppColors.mutedDark,
-                    ),
-                  ),
+                  Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textLight)),
+                  Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.mutedDark)),
                 ],
               ),
             ),
-            Icon(CupertinoIcons.chevron_right,
-                color: color, size: 16),
+            Icon(CupertinoIcons.chevron_right, color: color, size: 16),
           ],
         ),
       ),
