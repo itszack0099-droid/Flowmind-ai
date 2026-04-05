@@ -1,15 +1,8 @@
-name: flowmind
-description: FlowMind AI - Your Personal AI Mentor
-publish_to: 'none'
-version: 1.0.0+1
-
-environment:
-  sdk: '>=3.0.0 <4.0.0'
-
 dependencies:
   flutter:
     sdk: flutter
 
+  docx_to_text: ^1.0.0
   cupertino_icons: ^1.0.6
   google_fonts: ^6.1.0
   smooth_page_indicator: ^1.1.0
@@ -17,15 +10,18 @@ dependencies:
   go_router: ^13.0.0
   flutter_riverpod: ^2.4.9
   shared_preferences: ^2.2.2
-  http: ^1.2.0
+  http: ^1.2.2
   supabase_flutter: ^2.3.0
   app_links: 3.5.1
   file_picker: ^8.0.0
   http_parser: ^4.0.2
   flutter_local_notifications: ^9.9.1
+  llamadart: ^0.6.10
+  path_provider: ^2.1.4
+  permission_handler: ^11.3.1
+  pdfx: ^2.8.0
 
-  # FIX: Required because your main.dart uses Firebase.initializeApp()
-  firebase_core: ^2.30.0
+  firebase_core: ^2.30.0   # agar use kar rahe ho toh
 
 dev_dependencies:
   flutter_test:
@@ -34,6 +30,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
   assets:
     - assets/images/
