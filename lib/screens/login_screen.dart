@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/orb_background.dart';
@@ -9,6 +11,7 @@ import '../services/supabase_service.dart';
 import 'signup_screen.dart';
 import 'main_nav.dart';
 import 'forgot_password_screen.dart';
+import 'model_download_screen.dart';   // ← Naya import
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -33,8 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleLogin() async {
-    if (_emailController.text.trim().isEmpty ||
-        _passwordController.text.trim().isEmpty) {
+    if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
       setState(() => _errorMessage = 'Please fill in all fields');
       return;
     }
@@ -47,10 +49,23 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainNav()),
-        );
+        // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
+        // YAHAN INTEGRATION ADD KI GAYI HAI
+        final dir = await getApplicationDocumentsDirectory();
+        final modelFile = File('${dir.path}/qwen2.5-0.5b-q4_k_m.gguf');
+
+        if (!await modelFile.exists()) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const ModelDownloadScreen()),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const MainNav()),
+          );
+        }
+        // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
       }
     } on AuthException catch (e) {
       setState(() {
@@ -65,6 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // Baaki pura build method same hai (koi change nahi kiya UI mein)
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -295,7 +311,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 16),
 
-                        // Forgot Password — now navigates to screen
                         Center(
                           child: TextButton(
                             onPressed: () {
