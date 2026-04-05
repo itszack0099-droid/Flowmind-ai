@@ -6,7 +6,8 @@ import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/supabase_service.dart';
-import '../services/groq_service.dart';
+import '../services/local_llm_service.dart';
+import '../services/model_downloader.dart';
 
 class CandleFocusScreen extends StatefulWidget {
   const CandleFocusScreen({super.key});
@@ -33,6 +34,13 @@ class _CandleFocusScreenState extends State<CandleFocusScreen>
   final List<int> _manualOptions = [15, 25, 45, 60, 90];
   int _selectedMinutes = 25;
 
+  final LocalLLMService _llm = LocalLLMService();
+
+  bool _modelLoaded = false;
+  bool _downloadConfirmed = false;
+  String _modelStatus = "AI Model download ho raha hai...";
+  double _downloadProgress = 0.0;
+
   // ─── ANIMATION CONTROLLERS ──────────────────────────
   late AnimationController _flameController;
   late AnimationController _flickerController;
@@ -48,8 +56,6 @@ class _CandleFocusScreenState extends State<CandleFocusScreen>
   late Animation<double> _successScale;
   late Animation<double> _smokeOpacity;
 
-  // Timer
-  
   Duration _elapsed = Duration.zero;
   Duration _lastTick = Duration.zero;
 
@@ -57,6 +63,50 @@ class _CandleFocusScreenState extends State<CandleFocusScreen>
   void initState() {
     super.initState();
     _initAnimations();
+    _showDownloadConfirmation();
+  }
+
+  void _showDownloadConfirmation() {
+    if (_downloadConfirmed) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        title: const Text("🚀 Download AI Model?", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text("We need to download \~398 MB model for offline & unlimited use.\n\nOnce downloaded, everything works without internet forever."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Not now"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() => _downloadConfirmed = true);
+              _initializeLocalModel();
+            },
+            child: const Text("Download Now"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _initializeLocalModel() async {
+    await _llm.initializeModel(
+      onDownloadProgress: (progress) {
+        if (mounted) setState(() => _downloadProgress = progress);
+      },
+      onStatusUpdate: (status) {
+        if (mounted) {
+          setState(() {
+            _modelStatus = status;
+            if (status.contains("ready")) _modelLoaded = true;
+          });
+        }
+      },
+    );
   }
 
   void _initAnimations() {
@@ -74,7 +124,7 @@ class _CandleFocusScreenState extends State<CandleFocusScreen>
       CurvedAnimation(parent: _flickerController, curve: Curves.easeInOut),
     );
 
-    // Flame height — shrinks as time passes
+    // Flame height
     _flameController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -120,45 +170,104 @@ class _CandleFocusScreenState extends State<CandleFocusScreen>
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
-
-    // Ticker for countdown
-    
   }
 
-  void _onTick(Duration elapsed) {
-    final delta = elapsed - _lastTick;
-    _lastTick = elapsed;
+  void _onSessionComplete() async {
+    HapticFeedback.heavyImpact();
 
-    if (!_isRunning || _isPaused) return;
-
-    final newRemaining = _remainingSeconds - 1;
-
-    if (newRemaining <= 0) {
-      _onSessionComplete();
-      return;
-    }
-
-    // Update flame height based on progress
-    final progress = 1.0 - (newRemaining / _totalSeconds);
-    _flameController.value = progress;
-
-    // Random flicker speed
-    if (newRemaining < 60) {
-      _flickerController.duration =
-          Duration(milliseconds: 80 + Random().nextInt(100));
-    }
-
-    setState(() => _remainingSeconds = newRemaining);
-
-    // Reschedule next tick after 1 second
-    Future.delayed(const Duration(seconds: 1), () {
-      if (_isRunning && !_isPaused && mounted) {
-        _onTick(_lastTick + const Duration(seconds: 1));
-      }
+    setState(() {
+      _isRunning = false;
+      _isFinished = true;
+      _remainingSeconds = 0;
     });
+
+    _smokeController.forward();
+    await Future.delayed(const Duration(milliseconds: 500));
+    _successController.forward();
+
+    final xpEarned = (_totalSeconds \~/ 60) * 2;
+    setState(() => _earnedXP = xpEarned);
+
+    try {
+      await SupabaseService.addStudySession(
+        subject: _sessionGoal.isEmpty ? 'Focus Session' : _sessionGoal,
+        durationMinutes: _totalSeconds \~/ 60,
+      );
+    } catch (e) {}
   }
 
-  void _startSession() {
+  Future<void> _getAISuggestion() async {
+    setState(() => _isLoadingAI = true);
+
+    try {
+      final prompt = '''
+You are a smart study coach. Suggest optimal focus session duration in minutes for this student.
+
+Rules:
+- Morning (before 12): 45-60 min
+- Afternoon (12-17): 25-45 min
+- Evening: 15-25 min
+- If many pending tasks: longer session
+- If streak is low: shorter session to build habit
+
+Respond in this EXACT format only:
+MINUTES: [number]
+GOAL: [one short sentence]
+MESSAGE: [one motivational sentence]
+''';
+
+      final response = await _llm.getResponse(prompt);
+
+      int suggestedMinutes = 25;
+      String goal = 'Deep focus session';
+      String message = 'You got this!';
+
+      for (final line in response.split('\n')) {
+        if (line.startsWith('MINUTES:')) {
+          final num = int.tryParse(line.replaceAll('MINUTES:', '').trim());
+          if (num != null && num > 0 && num <= 120) suggestedMinutes = num;
+        }
+        if (line.startsWith('GOAL:')) goal = line.replaceAll('GOAL:', '').trim();
+        if (line.startsWith('MESSAGE:')) message = line.replaceAll('MESSAGE:', '').trim();
+      }
+
+      setState(() {
+        _selectedMinutes = suggestedMinutes;
+        _totalSeconds = suggestedMinutes * 60;
+        _remainingSeconds = suggestedMinutes * 60;
+        _sessionGoal = goal;
+        _aiMessage = message;
+        _isLoadingAI = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingAI = false;
+        _aiMessage = 'Start with 25 minutes. Stay focused!';
+      });
+    }
+  }
+
+  String _formatTime(int seconds) {
+    final m = seconds \~/ 60;
+    final s = seconds % 60;
+    return '\( {m.toString().padLeft(2, '0')}: \){s.toString().padLeft(2, '0')}';
+  }
+
+  double get _candleProgress =>
+      _totalSeconds > 0 ? _remainingSeconds / _totalSeconds : 1.0;
+
+  @override
+  void dispose() {
+    _llm.dispose();
+    _flickerController.dispose();
+    _flameController.dispose();
+    _glowController.dispose();
+    _smokeController.dispose();
+    _successController.dispose();
+    _waxController.dispose();
+    super.dispose();
+  }
+void _startSession() {
     HapticFeedback.mediumImpact();
     setState(() {
       _isRunning = true;
@@ -168,7 +277,6 @@ class _CandleFocusScreenState extends State<CandleFocusScreen>
       _flameController.value = 0.0;
     });
 
-    // Start countdown
     Future.delayed(const Duration(seconds: 1), () {
       if (_isRunning && !_isPaused && mounted) {
         _tick();
@@ -212,140 +320,6 @@ class _CandleFocusScreenState extends State<CandleFocusScreen>
     });
   }
 
-  void _onSessionComplete() async {
-    HapticFeedback.heavyImpact();
-
-    // Blow out candle
-    setState(() {
-      _isRunning = false;
-      _isFinished = true;
-      _remainingSeconds = 0;
-    });
-
-    _smokeController.forward();
-    await Future.delayed(const Duration(milliseconds: 500));
-    _successController.forward();
-
-    // Calculate XP
-    final xpEarned = (_totalSeconds ~/ 60) * 2;
-    setState(() => _earnedXP = xpEarned);
-
-    // Save study session
-    try {
-      await SupabaseService.addStudySession(
-        subject: _sessionGoal.isEmpty ? 'Focus Session' : _sessionGoal,
-        durationMinutes: _totalSeconds ~/ 60,
-      );
-    } catch (e) {}
-  }
-
-  Future<void> _getAISuggestion() async {
-    setState(() => _isLoadingAI = true);
-
-    try {
-      final profile = await SupabaseService.getProfile();
-      final tasks = await SupabaseService.getTasks();
-      final sessions = await SupabaseService.getStudySessions();
-
-      final pendingTasks = tasks.where((t) => t['is_done'] == false).length;
-      final xp = profile?['xp'] ?? 0;
-      final streak = profile?['streak'] ?? 0;
-      final name = profile?['name'] ?? 'Student';
-      final hour = DateTime.now().hour;
-
-      String timeOfDay;
-      if (hour < 12) timeOfDay = 'morning';
-      else if (hour < 17) timeOfDay = 'afternoon';
-      else timeOfDay = 'evening';
-
-      final prompt = '''
-You are a smart study coach. Based on this student's data, suggest optimal focus session duration in minutes.
-
-Student: $name
-Time of day: $timeOfDay
-XP: $xp
-Streak: $streak days
-Pending tasks: $pendingTasks
-Recent sessions: ${sessions.length}
-
-Rules:
-- Morning: suggest 45-60 min (fresh mind)
-- Afternoon: suggest 25-45 min
-- Evening: suggest 15-25 min (tired)
-- If streak is 0: suggest shorter session (15-25 min) to rebuild habit
-- If many pending tasks: suggest longer session
-
-Respond in this EXACT format only:
-MINUTES: [number]
-GOAL: [one short sentence about what to focus on]
-MESSAGE: [one motivational sentence for $name]
-
-Example:
-MINUTES: 45
-GOAL: Complete 3 pending tasks
-MESSAGE: Your $streak day streak shows you have what it takes!
-''';
-
-      final response = await GroqService.chat(
-        userMessage: prompt,
-        history: [],
-      );
-
-      // Parse response
-      int suggestedMinutes = 25;
-      String goal = 'Deep focus session';
-      String message = 'You got this!';
-
-      for (final line in response.split('\n')) {
-        if (line.startsWith('MINUTES:')) {
-          final num = int.tryParse(line.replaceAll('MINUTES:', '').trim());
-          if (num != null && num > 0 && num <= 120) suggestedMinutes = num;
-        }
-        if (line.startsWith('GOAL:')) {
-          goal = line.replaceAll('GOAL:', '').trim();
-        }
-        if (line.startsWith('MESSAGE:')) {
-          message = line.replaceAll('MESSAGE:', '').trim();
-        }
-      }
-
-      setState(() {
-        _selectedMinutes = suggestedMinutes;
-        _totalSeconds = suggestedMinutes * 60;
-        _remainingSeconds = suggestedMinutes * 60;
-        _sessionGoal = goal;
-        _aiMessage = message;
-        _isLoadingAI = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoadingAI = false;
-        _aiMessage = 'Start with 25 minutes. Stay focused!';
-      });
-    }
-  }
-
-  String _formatTime(int seconds) {
-    final m = seconds ~/ 60;
-    final s = seconds % 60;
-    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-  }
-
-  double get _candleProgress =>
-      _totalSeconds > 0 ? _remainingSeconds / _totalSeconds : 1.0;
-
-  @override
-  void dispose() {
-    _flickerController.dispose();
-    _flameController.dispose();
-    _glowController.dispose();
-    _smokeController.dispose();
-    _successController.dispose();
-    _waxController.dispose();
-    
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -357,7 +331,6 @@ MESSAGE: Your $streak day streak shows you have what it takes!
   }
 
   // ─── MAIN SCREEN ────────────────────────────────────
-
   Widget _buildMainScreen() {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -405,7 +378,7 @@ MESSAGE: Your $streak day streak shows you have what it takes!
 
           const SizedBox(height: 40),
 
-          // ─── CANDLE ─────────────────────────────────
+          // Candle
           _buildCandle(),
 
           const SizedBox(height: 32),
@@ -460,7 +433,7 @@ MESSAGE: Your $streak day streak shows you have what it takes!
 
           const SizedBox(height: 32),
 
-          // ─── MODE TOGGLE ────────────────────────────
+          // Mode Toggle
           if (!_isRunning) ...[
             FadeInUp(
               delay: const Duration(milliseconds: 100),
@@ -495,7 +468,7 @@ MESSAGE: Your $streak day streak shows you have what it takes!
 
             const SizedBox(height: 20),
 
-            // Manual time selector
+            // Manual selector
             if (!_isAIMode)
               FadeInUp(
                 delay: const Duration(milliseconds: 150),
@@ -582,7 +555,7 @@ MESSAGE: Your $streak day streak shows you have what it takes!
                 ),
               ),
 
-            // AI suggestion card
+            // AI suggestion
             if (_isAIMode && !_isLoadingAI && _aiMessage.isNotEmpty)
               FadeInUp(
                 child: Container(
@@ -626,7 +599,7 @@ MESSAGE: Your $streak day streak shows you have what it takes!
             const SizedBox(height: 28),
           ],
 
-          // ─── CONTROLS ───────────────────────────────
+          // Controls
           FadeInUp(
             delay: const Duration(milliseconds: 200),
             child: _isRunning
@@ -705,7 +678,6 @@ MESSAGE: Your $streak day streak shows you have what it takes!
   }
 
   // ─── CANDLE WIDGET ──────────────────────────────────
-
   Widget _buildCandle() {
     return AnimatedBuilder(
       animation: Listenable.merge([
@@ -727,9 +699,8 @@ MESSAGE: Your $streak day streak shows you have what it takes!
           child: Stack(
             alignment: Alignment.bottomCenter,
             children: [
-
-              // Glow effect
-              if (!_isFinished && (_isRunning || true))
+              // Glow
+              if (!_isFinished)
                 Positioned(
                   bottom: candleHeight * 0.6,
                   child: Container(
@@ -789,7 +760,7 @@ MESSAGE: Your $streak day streak shows you have what it takes!
                       ),
                     ),
 
-                    // Wax melt effect (dark top showing burn)
+                    // Wax melt
                     if (_isRunning)
                       Positioned(
                         top: 0,
@@ -813,7 +784,7 @@ MESSAGE: Your $streak day streak shows you have what it takes!
                         ),
                       ),
 
-                    // Wax drip left
+                    // Wax drips & highlight (same as original)
                     Positioned(
                       top: candleHeight * 0.1,
                       left: 8,
@@ -826,8 +797,6 @@ MESSAGE: Your $streak day streak shows you have what it takes!
                         ),
                       ),
                     ),
-
-                    // Wax drip right
                     Positioned(
                       top: candleHeight * 0.2,
                       right: 10,
@@ -840,8 +809,6 @@ MESSAGE: Your $streak day streak shows you have what it takes!
                         ),
                       ),
                     ),
-
-                    // Candle highlight
                     Positioned(
                       left: 8,
                       top: 10,
@@ -884,7 +851,7 @@ MESSAGE: Your $streak day streak shows you have what it takes!
                   ),
                 ),
 
-              // Smoke after extinguish
+              // Smoke
               if (_isFinished)
                 Positioned(
                   bottom: candleHeight + 10,
@@ -904,8 +871,7 @@ MESSAGE: Your $streak day streak shows you have what it takes!
                               height: 4 + i * 2.0,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(
-                                    0.3 - i * 0.05),
+                                color: Colors.white.withOpacity(0.3 - i * 0.05),
                               ),
                             ),
                           );
@@ -924,7 +890,6 @@ MESSAGE: Your $streak day streak shows you have what it takes!
   Widget _buildFlame(double size) {
     final flameH = 70.0 * size;
     final flameW = 36.0 * size;
-
     if (flameH < 4) return const SizedBox.shrink();
 
     return SizedBox(
@@ -937,7 +902,6 @@ MESSAGE: Your $streak day streak shows you have what it takes!
   }
 
   // ─── SUCCESS SCREEN ─────────────────────────────────
-
   Widget _buildSuccessScreen() {
     return Center(
       child: Padding(
@@ -949,7 +913,6 @@ MESSAGE: Your $streak day streak shows you have what it takes!
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Extinguished candle
                 Container(
                   width: 80,
                   height: 80,
@@ -976,7 +939,7 @@ MESSAGE: Your $streak day streak shows you have what it takes!
                 const SizedBox(height: 8),
 
                 Text(
-                  '${_totalSeconds ~/ 60} minutes of deep focus',
+                  '${_totalSeconds \~/ 60} minutes of deep focus',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16, color: Colors.white54,
                   ),
@@ -984,7 +947,6 @@ MESSAGE: Your $streak day streak shows you have what it takes!
 
                 const SizedBox(height: 32),
 
-                // XP earned
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 24, vertical: 16),
@@ -1013,7 +975,6 @@ MESSAGE: Your $streak day streak shows you have what it takes!
 
                 const SizedBox(height: 40),
 
-                // Buttons
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -1073,7 +1034,6 @@ MESSAGE: Your $streak day streak shows you have what it takes!
 }
 
 // ─── FLAME PAINTER ──────────────────────────────────────
-
 class _FlamePainter extends CustomPainter {
   final double size;
   _FlamePainter({required this.size});
@@ -1083,7 +1043,6 @@ class _FlamePainter extends CustomPainter {
     final w = canvasSize.width;
     final h = canvasSize.height;
 
-    // Outer flame (orange)
     final outerPaint = Paint()
       ..shader = RadialGradient(
         center: Alignment.bottomCenter,
@@ -1102,10 +1061,8 @@ class _FlamePainter extends CustomPainter {
     outerPath.cubicTo(w * 0.9, h * 0.3, w * 1.1, h * 0.7, w / 2, h);
     outerPath.cubicTo(-w * 0.1, h * 0.7, w * 0.1, h * 0.3, w / 2, 0);
     outerPath.close();
-
     canvas.drawPath(outerPath, outerPaint);
 
-    // Inner flame (yellow/white)
     final innerPaint = Paint()
       ..shader = RadialGradient(
         center: const Alignment(0, 0.3),
@@ -1122,7 +1079,6 @@ class _FlamePainter extends CustomPainter {
     innerPath.cubicTo(w * 0.7, h * 0.35, w * 0.75, h * 0.65, w / 2, h * 0.9);
     innerPath.cubicTo(w * 0.25, h * 0.65, w * 0.3, h * 0.35, w / 2, h * 0.1);
     innerPath.close();
-
     canvas.drawPath(innerPath, innerPaint);
   }
 
@@ -1131,7 +1087,6 @@ class _FlamePainter extends CustomPainter {
 }
 
 // ─── HELPER WIDGETS ─────────────────────────────────────
-
 class _ModeTab extends StatelessWidget {
   final String label;
   final IconData icon;
