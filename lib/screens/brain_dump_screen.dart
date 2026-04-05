@@ -4,7 +4,8 @@ import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
-import '../services/groq_service.dart';
+import '../services/local_llm_service.dart';
+import '../services/model_downloader.dart';
 import '../services/supabase_service.dart';
 
 class BrainDumpScreen extends StatefulWidget {
@@ -16,11 +17,67 @@ class BrainDumpScreen extends StatefulWidget {
 
 class _BrainDumpScreenState extends State<BrainDumpScreen> {
   final _controller = TextEditingController();
+  final LocalLLMService _llm = LocalLLMService();
+
   bool _isProcessing = false;
   bool _showResults = false;
   bool _isRecording = false;
   bool _isSaving = false;
   Map<String, dynamic>? _results;
+
+  bool _modelLoaded = false;
+  bool _downloadConfirmed = false;
+  String _modelStatus = "AI Model download ho raha hai...";
+  double _downloadProgress = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _showDownloadConfirmation();
+  }
+
+  void _showDownloadConfirmation() {
+    if (_downloadConfirmed) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        title: const Text("🚀 Download AI Model?", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text("We need to download \~398 MB model for offline & unlimited use.\n\nOnce downloaded, everything works without internet forever."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Not now"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() => _downloadConfirmed = true);
+              _initializeLocalModel();
+            },
+            child: const Text("Download Now"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _initializeLocalModel() async {
+    await _llm.initializeModel(
+      onDownloadProgress: (progress) {
+        if (mounted) setState(() => _downloadProgress = progress);
+      },
+      onStatusUpdate: (status) {
+        if (mounted) {
+          setState(() {
+            _modelStatus = status;
+            if (status.contains("ready")) _modelLoaded = true;
+          });
+        }
+      },
+    );
+  }
 
   void _processDump() async {
     if (_controller.text.trim().isEmpty) return;
@@ -31,7 +88,42 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
       _results = null;
     });
 
-    final result = await GroqService.processBrainDump(_controller.text.trim());
+    // Local LLM se process kar rahe hain
+    final prompt = """
+<system>
+Tu FlowMind AI ka Brain Dump Analyzer hai. User jo bhi likhega usse:
+1. Important Tasks nikaal
+2. Priorities set kar (High/Medium/Low)
+3. Action steps suggest kar
+4. Suggested schedule/time slots de
+5. Extra tips de productivity ke liye
+
+Sab kuch clean bullet points mein Hindi mein de.
+Format:
+✅ Tasks:
+• Task 1 (High)
+• Task 2 (Medium)
+
+⏰ Suggested Schedule:
+• 9 AM - Task 1
+
+💡 Action Steps:
+• Step 1...
+</system>
+
+<user>
+${_controller.text.trim()}
+</user>
+""";
+
+    final resultText = await _llm.getResponse(prompt);
+
+    // Simple parsing (AI se structured output expect kar rahe hain)
+    final result = {
+      'tasks': [], // yahan baad mein parsing kar sakte hain
+      'schedule': [],
+      'ai_suggestion': resultText,
+    };
 
     if (mounted) {
       setState(() {
@@ -48,6 +140,7 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
     setState(() => _isSaving = true);
 
     try {
+      // Tasks save karne ka logic same rakha hai
       final tasks = _results!['tasks'] as List? ?? [];
       for (final task in tasks) {
         await SupabaseService.addTask(
@@ -97,11 +190,11 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
 
   @override
   void dispose() {
+    _llm.dispose();
     _controller.dispose();
     super.dispose();
   }
-
-  @override
+@override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -519,7 +612,8 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
                               ? const SizedBox(
                                   width: 22,
                                   height: 22,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                                  child:
+CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                                 )
                               : Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
