@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/orb_background.dart';
 import '../services/supabase_service.dart';
 import 'login_screen.dart';
 import 'otp_screen.dart';
+import 'model_download_screen.dart';   // ← Naya import
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -62,12 +65,25 @@ class _SignupScreenState extends State<SignupScreen> {
         password: _passwordController.text.trim(),
         name: _nameController.text.trim(),
       );
+
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => OtpScreen(email: _emailController.text.trim()),
-          ),
-        );
+        // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
+        // YAHAN INTEGRATION ADD KI GAYI HAI
+        final dir = await getApplicationDocumentsDirectory();
+        final modelFile = File('${dir.path}/qwen2.5-0.5b-q4_k_m.gguf');
+
+        if (!await modelFile.exists()) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const ModelDownloadScreen()),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => OtpScreen(email: _emailController.text.trim()),
+            ),
+          );
+        }
+        // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
       }
     } on AuthException catch (e) {
       setState(() { _isLoading = false; _errorMessage = e.message; });
@@ -75,8 +91,7 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() { _isLoading = false; _errorMessage = 'Something went wrong. Please try again.'; });
     }
   }
-
-  @override
+@override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
