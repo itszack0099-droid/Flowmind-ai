@@ -4,7 +4,8 @@ import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
-import '../services/groq_service.dart';
+import '../services/local_llm_service.dart';
+import '../services/model_downloader.dart';
 
 class ExamRoomScreen extends StatefulWidget {
   const ExamRoomScreen({super.key});
@@ -38,6 +39,62 @@ class _ExamRoomScreenState extends State<ExamRoomScreen> {
       'total': 5,
     },
   ];
+
+  final LocalLLMService _llm = LocalLLMService();
+
+  bool _modelLoaded = false;
+  bool _downloadConfirmed = false;
+  String _modelStatus = "AI Model download ho raha hai...";
+  double _downloadProgress = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _showDownloadConfirmation();
+  }
+
+  void _showDownloadConfirmation() {
+    if (_downloadConfirmed) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        title: const Text("🚀 Download AI Model?", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text("We need to download \~398 MB model for offline & unlimited use.\n\nOnce downloaded, everything works without internet forever."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Not now"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() => _downloadConfirmed = true);
+              _initializeLocalModel();
+            },
+            child: const Text("Download Now"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _initializeLocalModel() async {
+    await _llm.initializeModel(
+      onDownloadProgress: (progress) {
+        if (mounted) setState(() => _downloadProgress = progress);
+      },
+      onStatusUpdate: (status) {
+        if (mounted) {
+          setState(() {
+            _modelStatus = status;
+            if (status.contains("ready")) _modelLoaded = true;
+          });
+        }
+      },
+    );
+  }
 
   void _showAddExamSheet() {
     final subjectController = TextEditingController();
@@ -172,8 +229,7 @@ class _ExamRoomScreenState extends State<ExamRoomScreen> {
       ),
     );
   }
-
-  void _showBattlePlan(Map<String, dynamic> exam) {
+void _showBattlePlan(Map<String, dynamic> exam) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -364,7 +420,7 @@ class _ExamRoomScreenState extends State<ExamRoomScreen> {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text('Syllabus Progress', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.mutedDark)),
-                                      Text('${exam['completed']}/${exam['total']} topics', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: exam['color'] as Color)),
+                                      Text('\( {exam['completed']}/ \){exam['total']} topics', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: exam['color'] as Color)),
                                     ],
                                   ),
                                   const SizedBox(height: 8),
@@ -450,9 +506,7 @@ class _ExamRoomScreenState extends State<ExamRoomScreen> {
       ),
     );
   }
-}
-
-// Battle Plan Bottom Sheet with real AI
+// Battle Plan Bottom Sheet with Local LLM
 class _BattlePlanSheet extends StatefulWidget {
   final Map<String, dynamic> exam;
   const _BattlePlanSheet({required this.exam});
@@ -465,6 +519,8 @@ class _BattlePlanSheetState extends State<_BattlePlanSheet> {
   bool _isLoading = true;
   String _battlePlan = '';
 
+  final LocalLLMService _llm = LocalLLMService();   // local instance
+
   @override
   void initState() {
     super.initState();
@@ -472,14 +528,33 @@ class _BattlePlanSheetState extends State<_BattlePlanSheet> {
   }
 
   Future<void> _generatePlan() async {
-    final plan = await GroqService.generateBattlePlan(
-      subject: widget.exam['subject'],
-      daysLeft: widget.exam['daysLeft'],
-      topics: List<String>.from(widget.exam['topics']),
-    );
+    setState(() => _isLoading = true);
+
+    final prompt = '''
+You are FlowMind AI - an expert exam strategist and study coach.
+
+Create a powerful, realistic "Battle Plan" for this exam:
+
+Subject: ${widget.exam['subject']}
+Days left: ${widget.exam['daysLeft']}
+Topics: ${widget.exam['topics'].join(', ')}
+
+Rules for the plan:
+- Make it highly motivating and actionable
+- Break into daily tasks (Day 1, Day 2, ..., Last Day)
+- Include revision, practice tests, weak area focus
+- Add quick tips, mindset advice, and gamification
+- Keep total plan under 400 words
+- Use bullet points and emojis for easy reading
+
+Respond in clean, beautiful markdown format.
+''';
+
+    final response = await _llm.getResponse(prompt);
+
     if (mounted) {
       setState(() {
-        _battlePlan = plan;
+        _battlePlan = response;
         _isLoading = false;
       });
     }
