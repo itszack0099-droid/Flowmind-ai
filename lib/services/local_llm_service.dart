@@ -1,3 +1,4 @@
+static const bool _devModeSkipDownload = true';
 import 'package:flutter/material.dart';
 import 'package:llamadart/llamadart.dart';
 import 'model_downloader.dart';
