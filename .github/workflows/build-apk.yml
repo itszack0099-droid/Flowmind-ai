@@ -1,4 +1,4 @@
-name: Build FlowMind APK - FINAL CLEAN
+name: Build FlowMind APK - FINAL
 
 on:
   push:
@@ -21,36 +21,20 @@ jobs:
           channel: 'stable'
           cache: false
 
-      - name: Force Fresh Dependencies
+      - name: Clean Everything
         run: |
           flutter clean
           rm -f pubspec.lock
           rm -rf \~/.pub-cache
-          flutter pub get
-
-      - name: Completely Regenerate Android Folder (Final Fix)
-        run: |
           rm -rf android build .gradle .flutter-plugins* .metadata android.iml
+
+      - name: Create Fresh Android Folder
+        run: |
           flutter create temp_project --platforms=android --org=com.flowmind --project-name flowmind
           cp -r temp_project/android ./
           rm -rf temp_project
-          echo "✅ Android folder successfully regenerated"
+          echo "✅ Fresh android folder created"
           ls -la android/
-
-      - name: Fix flutter_local_notifications Linux Issue
-        run: |
-          cat >> android/app/build.gradle << 'EOF'
-
-          android {
-              packagingOptions {
-                  exclude 'META-INF/services/io.flutter.embedding.engine.plugins.PluginRegistrant'
-                  pickFirst 'lib/arm64-v8a/libc++_shared.so'
-                  pickFirst 'lib/armeabi-v7a/libc++_shared.so'
-                  pickFirst 'lib/x86/libc++_shared.so'
-                  pickFirst 'lib/x86_64/libc++_shared.so'
-              }
-          }
-          EOF
 
       - name: Fix Gradle Permission
         run: chmod +x android/gradlew || true
