@@ -31,9 +31,12 @@ jobs:
           rm -rf \~/.pub-cache
           flutter pub get
 
-      - name: Completely Regenerate Android Folder (Critical Fix)
+      - name: Completely Regenerate Android Folder (Permanent Fix)
         run: |
           rm -rf android
+          rm -rf build
+          rm -rf .flutter-plugins*
+          rm -rf .metadata
           flutter create . --platforms=android --org=com.flowmind
 
       - name: Fix flutter_local_notifications Linux Issue
