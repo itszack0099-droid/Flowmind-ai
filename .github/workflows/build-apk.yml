@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -21,113 +20,31 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter
+      - name: Setup Flutter (Force Latest)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
+          flutter-version: '3.27.0'     # ← Yeh line sabse important hai
           channel: 'stable'
-          cache: true
-
-      - name: Create Flutter project scaffold
-        run: |
-          flutter create --org com.flowmind --project-name flowmind temp_project
-          cp -r temp_project/android ./android
-          cp -r temp_project/ios ./ios
-          cp -r temp_project/web ./web
-          cp temp_project/analysis_options.yaml ./analysis_options.yaml || true
-          rm -rf temp_project
+          cache: false                  # ← Purane cache ko ignore karega
 
       - name: Fix Gradle permission
-        run: chmod +x android/gradlew
-
-      - name: Add Permissions and Deep Link
-        run: |
-          python3 - <<'EOF'
-          with open('android/app/src/main/AndroidManifest.xml', 'r') as f:
-              content = f.read()
-
-          if 'INTERNET' not in content:
-              content = content.replace(
-                  '<application',
-                  '<uses-permission android:name="android.permission.INTERNET"/>\n'
-                  '<uses-permission android:name="android.permission.VIBRATE"/>\n'
-                  '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n'
-                  '<application'
-              )
-
-          if 'flowmind' not in content:
-              content = content.replace(
-                  '</activity>',
-                  '''    <intent-filter>
-                      <action android:name="android.intent.action.VIEW"/>
-                      <category android:name="android.intent.category.DEFAULT"/>
-                      <category android:name="android.intent.category.BROWSABLE"/>
-                      <data android:scheme="flowmind"/>
-                  </intent-filter>
-              </activity>'''
-              )
-
-          with open('android/app/src/main/AndroidManifest.xml', 'w') as f:
-              f.write(content)
-
-          print("AndroidManifest.xml updated!")
-          EOF
-
-      - name: Create assets directory
-        run: mkdir -p assets/images
-
-      - name: Install ImageMagick
-        run: sudo apt-get update && sudo apt-get install -y imagemagick
-
-      - name: Set App Icon
-        run: |
-          mkdir -p android/app/src/main/res/mipmap-hdpi
-          mkdir -p android/app/src/main/res/mipmap-mdpi
-          mkdir -p android/app/src/main/res/mipmap-xhdpi
-          mkdir -p android/app/src/main/res/mipmap-xxhdpi
-          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
-
-          convert assets/images/logo.png -resize 72x72 android/app/src/main/res/mipmap-hdpi/ic_launcher.png
-          convert assets/images/logo.png -resize 48x48 android/app/src/main/res/mipmap-mdpi/ic_launcher.png
-          convert assets/images/logo.png -resize 96x96 android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
-          convert assets/images/logo.png -resize 144x144 android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-          convert assets/images/logo.png -resize 192x192 android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+        run: chmod +x android/gradlew || true
 
       - name: Install Dependencies
         run: |
           flutter clean
           flutter pub get
 
-      - name: Analyze Code
-        run: flutter analyze --no-fatal-infos
-        continue-on-error: true
-
       - name: Build Release APK
         run: |
-          flutter build apk --release --no-tree-shake-icons \
-            --dart-define=GROQ_API_KEY=${{ secrets.GROQ_API_KEY }} \
-            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
-
-      - name: Build Split APKs
-        run: |
-          flutter build apk --split-per-abi --release --no-tree-shake-icons \
-            --dart-define=GROQ_API_KEY=${{ secrets.GROQ_API_KEY }} \
-            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
-        continue-on-error: true
+          flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: FlowMind-APK-${{ github.run_number }}
-          path: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+          name: FlowMind-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
 
       - name: Show APK Size
-        run: |
-          echo "Build Successful!"
-          ls -lh build/app/outputs/flutter-apk/*.apk
+        run: ls -lh build/app/outputs/flutter-apk/app-release.apk
