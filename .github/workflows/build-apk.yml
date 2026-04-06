@@ -20,26 +20,32 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter 3.27.0
+      - name: Setup Flutter 3.27.0 (Fresh Install)
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.27.0'
           channel: 'stable'
           cache: false
 
-      - name: Force Clear Cache + Generate Fresh pubspec.lock
+      - name: Force Create Fresh pubspec.lock
         run: |
           flutter clean
           rm -f pubspec.lock
           rm -rf \~/.pub-cache
           flutter pub get
+          echo "✅ Fresh pubspec.lock created with correct SDK"
+
+      - name: Verify Flutter & Dart Version
+        run: |
+          flutter --version
+          dart --version
 
       - name: Regenerate Android Folder
         run: |
           rm -rf android
           flutter create . --platforms=android --org=com.flowmind
 
-      - name: Fix Gradle permission
+      - name: Fix Gradle Permission
         run: chmod +x android/gradlew || true
 
       - name: Build Release APK
