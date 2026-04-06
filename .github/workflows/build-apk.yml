@@ -14,16 +14,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+      - name: Remove Old Flutter Cache
+        run: rm -rf /opt/hostedtoolcache/flutter
 
-      - name: Setup Flutter 3.27.0 (Fresh Install)
+      - name: Setup Latest Stable Flutter (Dart 3.11+)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.27.0'
+          flutter-version: 'latest'
           channel: 'stable'
           cache: false
 
