@@ -27,7 +27,6 @@ dependencies:
   youtube_transcript_api: ^1.0.0
   http: ^1.2.2
   http_parser: ^4.0.2
-  flutter_local_notifications: ^9.9.1
   llamadart: ^0.6.10
   firebase_core: ^2.30.0
 
