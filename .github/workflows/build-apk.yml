@@ -20,30 +20,36 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter 3.27.0 (Clean Cache)
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.27.0'
-          channel: 'stable'
-          cache: false
-
-      - name: Force Clear Cache & Dependencies
+      - name: Manually Download & Install Fresh Flutter 3.27.0
         run: |
-          flutter clean
+          rm -rf $GITHUB_WORKSPACE/flutter
+          git clone -b stable --depth 1 https://github.com/flutter/flutter.git $GITHUB_WORKSPACE/flutter
+          echo "$GITHUB_WORKSPACE/flutter/bin" >> $GITHUB_PATH
+          echo "$GITHUB_WORKSPACE/flutter/bin/cache/dart-sdk/bin" >> $GITHUB_PATH
+          $GITHUB_WORKSPACE/flutter/bin/flutter --version
+
+      - name: Verify Dart SDK Version
+        run: |
+          $GITHUB_WORKSPACE/flutter/bin/flutter --version
+          $GITHUB_WORKSPACE/flutter/bin/dart --version
+
+      - name: Clean & Get Dependencies
+        run: |
+          $GITHUB_WORKSPACE/flutter/bin/flutter clean
           rm -f pubspec.lock
           rm -rf \~/.pub-cache
-          flutter pub get
+          $GITHUB_WORKSPACE/flutter/bin/flutter pub get
 
       - name: Regenerate Android Folder
         run: |
           rm -rf android
-          flutter create . --platforms=android --org=com.flowmind
+          $GITHUB_WORKSPACE/flutter/bin/flutter create . --platforms=android --org=com.flowmind
 
-      - name: Fix Gradle
+      - name: Fix Gradle permission
         run: chmod +x android/gradlew || true
 
       - name: Build Release APK
-        run: flutter build apk --release --no-tree-shake-icons
+        run: $GITHUB_WORKSPACE/flutter/bin/flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
