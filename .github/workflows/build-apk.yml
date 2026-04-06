@@ -28,12 +28,17 @@ jobs:
           rm -rf \~/.pub-cache
           flutter pub get
 
-      - name: Completely Regenerate Android Folder (Most Aggressive)
+      - name: Debug - Before Regeneration
+        run: ls -la
+
+      - name: Completely Regenerate Android Folder (Debug Mode)
         run: |
           rm -rf android build .gradle .flutter-plugins* .metadata android.iml
           flutter create temp_project --platforms=android --org=com.flowmind --project-name flowmind
           cp -r temp_project/android ./
           rm -rf temp_project
+          echo "✅ Android folder regenerated"
+          ls -la android/
 
       - name: Fix flutter_local_notifications Linux Issue
         run: |
