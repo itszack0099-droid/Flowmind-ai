@@ -14,9 +14,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Remove Old Flutter Cache
-        run: rm -rf /opt/hostedtoolcache/flutter
-
       - name: Setup Latest Stable Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -31,13 +28,12 @@ jobs:
           rm -rf \~/.pub-cache
           flutter pub get
 
-      - name: Completely Regenerate Android Folder (Permanent Fix)
+      - name: Completely Regenerate Android Folder (Most Aggressive)
         run: |
-          rm -rf android
-          rm -rf build
-          rm -rf .flutter-plugins*
-          rm -rf .metadata
-          flutter create . --platforms=android --org=com.flowmind
+          rm -rf android build .gradle .flutter-plugins* .metadata android.iml
+          flutter create temp_project --platforms=android --org=com.flowmind --project-name flowmind
+          cp -r temp_project/android ./
+          rm -rf temp_project
 
       - name: Fix flutter_local_notifications Linux Issue
         run: |
