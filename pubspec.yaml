@@ -29,7 +29,7 @@ dependencies:
   permission_handler: ^11.3.1
   pdfx: ^2.8.0
   docx_to_text: ^1.0.0
-  youtube_transcript_api: ^1.0.0   # ← YouTube ke liye zaroori
+  youtube_transcript_api: ^1.0.0
 
   # HTTP & Notifications
   http: ^1.2.2
@@ -39,8 +39,14 @@ dependencies:
   # Local AI
   llamadart: ^0.6.10
 
-  # Firebase (agar use kar rahe ho)
+  # Firebase
   firebase_core: ^2.30.0
+
+# ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
+# Yeh conflict fix karne ke liye important hai
+dependency_overrides:
+  archive: ^4.0.7
+# ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
 
 dev_dependencies:
   flutter_test:
