@@ -17,7 +17,7 @@ jobs:
       - name: Remove Old Flutter Cache
         run: rm -rf /opt/hostedtoolcache/flutter
 
-      - name: Setup Latest Stable Flutter 3.x (Dart 3.11+)
+      - name: Setup Latest Stable Flutter 3.x
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.x'
@@ -30,17 +30,29 @@ jobs:
           rm -f pubspec.lock
           rm -rf \~/.pub-cache
           flutter pub get
-          echo "✅ Fresh pubspec.lock created with correct SDK"
 
-      - name: Verify Flutter & Dart Version
-        run: |
-          flutter --version
-          dart --version
+      - name: Verify Flutter Version
+        run: flutter --version
 
       - name: Regenerate Android Folder
         run: |
           rm -rf android
           flutter create . --platforms=android --org=com.flowmind
+
+      - name: Fix flutter_local_notifications Issues (Critical)
+        run: |
+          cat >> android/app/build.gradle << 'EOF'
+
+          android {
+              packagingOptions {
+                  exclude 'META-INF/services/io.flutter.embedding.engine.plugins.PluginRegistrant'
+                  pickFirst 'lib/arm64-v8a/libc++_shared.so'
+                  pickFirst 'lib/armeabi-v7a/libc++_shared.so'
+                  pickFirst 'lib/x86/libc++_shared.so'
+                  pickFirst 'lib/x86_64/libc++_shared.so'
+              }
+          }
+          EOF
 
       - name: Fix Gradle Permission
         run: chmod +x android/gradlew || true
