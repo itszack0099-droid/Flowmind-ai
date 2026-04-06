@@ -20,7 +20,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter 3.27.0
+      - name: Setup Flutter 3.27.0 (Dart 3.6.0)
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.27.0'
@@ -32,27 +32,24 @@ jobs:
           flutter config --no-analytics
           dart --disable-analytics
 
-      - name: Verify Flutter & Dart Versions
+      - name: Verify Flutter and Dart Versions
         run: |
           flutter --version
           dart --version
 
-      - name: Clean Project & Clear All Caches
+      - name: Clear All Caches
         run: |
           flutter clean
           rm -f pubspec.lock
           rm -rf ~/.pub-cache
           rm -rf ~/.dart
-          rm -rf $FLUTTER_ROOT/.pub-cache
+          rm -rf "${FLUTTER_ROOT}/.pub-cache"
 
       - name: Get Dependencies
         run: flutter pub get
 
-      - name: Fix Gradle Permissions
-        run: |
-          if [ -f android/gradlew ]; then
-            chmod +x android/gradlew
-          fi
+      - name: Make Gradlew Executable
+        run: chmod +x android/gradlew
 
       - name: Build Release APK
         run: flutter build apk --release --no-tree-shake-icons
