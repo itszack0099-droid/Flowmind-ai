@@ -14,22 +14,20 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Remove Old Cached Flutter Completely
+      - name: Remove Old Flutter Cache Completely
         run: rm -rf /opt/hostedtoolcache/flutter
 
-      - name: Setup Flutter 3.27.0 (Fresh)
+      - name: Setup Fresh Flutter 3.27.0
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.27.0'
           channel: 'stable'
           cache: false
 
-      - name: Verify Flutter & Dart Version
-        run: |
-          flutter --version
-          dart --version
+      - name: Verify Version
+        run: flutter --version
 
-      - name: Force Clean Everything
+      - name: Force Clean & Get Dependencies
         run: |
           flutter clean
           rm -f pubspec.lock
@@ -41,7 +39,7 @@ jobs:
           rm -rf android
           flutter create . --platforms=android --org=com.flowmind
 
-      - name: Fix Gradle permission
+      - name: Fix Gradle
         run: chmod +x android/gradlew || true
 
       - name: Build Release APK
