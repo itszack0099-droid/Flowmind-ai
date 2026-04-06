@@ -50,7 +50,7 @@ dependency_overrides:
 
 dev_dependencies:
   flutter_test:
-    sdk: flutter
+    sdk: 3.10.7 <4.0.0
   flutter_lints: ^3.0.0
 
 flutter:
