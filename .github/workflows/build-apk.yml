@@ -1,4 +1,4 @@
-name: Build FlowMind APK - DEBUG
+name: Build FlowMind APK - FINAL CLEAN
 
 on:
   push:
@@ -21,31 +21,21 @@ jobs:
           channel: 'stable'
           cache: false
 
-      - name: Force Create Fresh pubspec.lock
+      - name: Force Fresh Dependencies
         run: |
           flutter clean
           rm -f pubspec.lock
           rm -rf \~/.pub-cache
           flutter pub get
 
-      - name: DEBUG - Files before regeneration
-        run: ls -la
-
-      - name: Completely Regenerate Android Folder (DEBUG)
+      - name: Completely Regenerate Android Folder (Final Fix)
         run: |
-          echo "=== Deleting old android folder ==="
           rm -rf android build .gradle .flutter-plugins* .metadata android.iml
-          echo "=== Running flutter create ==="
           flutter create temp_project --platforms=android --org=com.flowmind --project-name flowmind
-          echo "=== Copying android folder ==="
           cp -r temp_project/android ./
-          echo "=== Deleting temp project ==="
           rm -rf temp_project
-          echo "=== Android folder regeneration complete ==="
+          echo "✅ Android folder successfully regenerated"
           ls -la android/
-
-      - name: DEBUG - Flutter Doctor
-        run: flutter doctor -v
 
       - name: Fix flutter_local_notifications Linux Issue
         run: |
