@@ -20,38 +20,49 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter (Force 3.27.0)
+      - name: Setup Flutter 3.27.0
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.27.0'
           channel: 'stable'
           cache: false
 
-      - name: Verify Flutter & Dart Version
+      - name: Disable Flutter Analytics
+        run: |
+          flutter config --no-analytics
+          dart --disable-analytics
+
+      - name: Verify Flutter & Dart Versions
         run: |
           flutter --version
           dart --version
 
-      - name: Full Clean + Fresh Dependencies
+      - name: Clean Project & Clear All Caches
         run: |
           flutter clean
           rm -f pubspec.lock
-          rm -rf \~/.pub-cache
-          flutter pub get
+          rm -rf ~/.pub-cache
+          rm -rf ~/.dart
+          rm -rf $FLUTTER_ROOT/.pub-cache
 
-      - name: Fix Gradle
-        run: chmod +x android/gradlew || true
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Fix Gradle Permissions
+        run: |
+          if [ -f android/gradlew ]; then
+            chmod +x android/gradlew
+          fi
 
       - name: Build Release APK
-        run: |
-          flutter build apk --release --no-tree-shake-icons
+        run: flutter build apk --release --no-tree-shake-icons
 
-      - name: Upload APK
+      - name: Show APK Size
+        run: ls -lh build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: FlowMind-APK
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
-
-      - name: Show APK Size
-        run: ls -lh build/app/outputs/flutter-apk/app-release.apk
