@@ -20,27 +20,27 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter 3.27.0 (Force Fresh)
+      - name: Setup Flutter 3.27.0 (Ultra Clean)
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.27.0'
           channel: 'stable'
           cache: false
 
-      - name: Force Clear All Cache
+      - name: Force Clear All Caches
         run: |
           flutter clean
           rm -rf \~/.pub-cache
           rm -f pubspec.lock
           flutter pub get
 
-      - name: Regenerate Android Folder (if missing)
+      - name: Regenerate Android Folder (if missing/corrupted)
         run: |
           if [ ! -d "android" ]; then
             flutter create . --platforms=android --org=com.flowmind
           fi
 
-      - name: Fix Gradle
+      - name: Fix Gradle permission
         run: chmod +x android/gradlew || true
 
       - name: Build Release APK
