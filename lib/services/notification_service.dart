@@ -1,76 +1,71 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/material.dart';
 
 class NotificationService {
-  static final FlutterLocalNotificationsPlugin _notifications =
+  static final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  // Initialize notifications (V2 embedding ready)
   static Future<void> initialize() async {
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    await _notifications.initialize(
-      const InitializationSettings(android: androidInit),
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const DarwinInitializationSettings iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
     );
-    const channel = AndroidNotificationChannel(
-      'flowmind_channel', 'FlowMind Notifications',
-      importance: Importance.high,
+
+    const InitializationSettings initializationSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
     );
-    await _notifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
+
+    await _notificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        // Handle notification tap here if needed
+        debugPrint('Notification tapped: ${response.payload}');
+      },
+    );
   }
 
-  static Future<void> showExamReminder({
-    required String subject,
-    required int daysLeft,
+  // Show simple notification
+  static Future<void> showNotification({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
   }) async {
-    await _notifications.show(
-      subject.hashCode,
-      'Exam Reminder',
-      daysLeft == 1
-          ? '$subject exam is TOMORROW!'
-          : 'Only $daysLeft days left for $subject!',
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'flowmind_channel', 'FlowMind Notifications',
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-        ),
-      ),
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'flowmind_channel',
+      'FlowMind Notifications',
+      channelDescription: 'FlowMind AI notifications',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+    );
+
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+    );
+
+    await _notificationsPlugin.show(
+      id,
+      title,
+      body,
+      notificationDetails,
+      payload: payload,
     );
   }
 
-  static Future<void> showStreakReminder(int streak) async {
-    await _notifications.show(
-      999,
-      streak > 0 ? 'Keep your streak alive!' : 'Miss me?',
-      streak > 0
-          ? 'You have a $streak day streak. Study today!'
-          : 'You have not studied today. Start now!',
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'flowmind_channel', 'FlowMind Notifications',
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-        ),
-      ),
-    );
+  // Cancel notification
+  static Future<void> cancelNotification(int id) async {
+    await _notificationsPlugin.cancel(id);
   }
 
-  static Future<void> showXPMilestone(int level, String title) async {
-    await _notifications.show(
-      level,
-      'Level Up!',
-      'You reached Level $level — $title!',
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'flowmind_channel', 'FlowMind Notifications',
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-        ),
-      ),
-    );
+  // Cancel all notifications
+  static Future<void> cancelAll() async {
+    await _notificationsPlugin.cancelAll();
   }
 }
