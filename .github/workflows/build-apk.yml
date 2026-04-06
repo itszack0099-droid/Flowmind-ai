@@ -17,10 +17,10 @@ jobs:
       - name: Remove Old Flutter Cache
         run: rm -rf /opt/hostedtoolcache/flutter
 
-      - name: Setup Latest Stable Flutter (Dart 3.11+)
+      - name: Setup Latest Stable Flutter 3.x (Dart 3.11+)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'latest'
+          flutter-version: '3.x'
           channel: 'stable'
           cache: false
 
