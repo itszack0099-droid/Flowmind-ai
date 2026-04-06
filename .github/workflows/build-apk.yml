@@ -20,46 +20,44 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter 3.41.6 (Dart 3.11.4)
+      - name: Setup Flutter 3.27.0
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.6'
+          flutter-version: '3.27.0'
           channel: 'stable'
           cache: false
 
-      - name: Disable Flutter Analytics
+      - name: Regenerate Android Folder (if missing)
         run: |
-          flutter config --no-analytics
-          dart --disable-analytics
+          if [ ! -d "android" ]; then
+            echo "Android folder missing → Regenerating..."
+            flutter create . --platforms=android --org=com.flowmind
+          else
+            echo "Android folder exists"
+          fi
 
-      - name: Verify Flutter and Dart Versions
-        run: |
-          flutter --version
-          dart --version
+      - name: Verify Flutter
+        run: flutter --version
 
-      - name: Clear All Caches
+      - name: Clean & Get Dependencies
         run: |
           flutter clean
           rm -f pubspec.lock
-          rm -rf ~/.pub-cache
-          rm -rf ~/.dart
-          rm -rf "${FLUTTER_ROOT}/.pub-cache"
+          rm -rf \~/.pub-cache
+          flutter pub get
 
-      - name: Get Dependencies
-        run: flutter pub get
-
-      - name: Make Gradlew Executable
-        run: chmod +x android/gradlew
+      - name: Fix Gradle permission
+        run: chmod +x android/gradlew || true
 
       - name: Build Release APK
         run: flutter build apk --release --no-tree-shake-icons
 
-      - name: Show APK Size
-        run: ls -lh build/app/outputs/flutter-apk/app-release.apk
-
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: FlowMind-APK
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
+
+      - name: Show APK Size
+        run: ls -lh build/app/outputs/flutter-apk/app-release.apk
