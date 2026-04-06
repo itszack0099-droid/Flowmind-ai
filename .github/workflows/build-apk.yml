@@ -14,24 +14,26 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+      - name: Remove Old Cached Flutter Completely
+        run: rm -rf /opt/hostedtoolcache/flutter
 
-      - name: Setup Flutter 3.27.0 (Aggressive Clean)
+      - name: Setup Flutter 3.27.0 (Fresh)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.5'
+          flutter-version: '3.27.0'
           channel: 'stable'
           cache: false
 
-      - name: Force Clear All Caches
+      - name: Verify Flutter & Dart Version
         run: |
-          rm -rf \~/.pub-cache
-          rm -f pubspec.lock
+          flutter --version
+          dart --version
+
+      - name: Force Clean Everything
+        run: |
           flutter clean
+          rm -f pubspec.lock
+          rm -rf \~/.pub-cache
           flutter pub get
 
       - name: Regenerate Android Folder
