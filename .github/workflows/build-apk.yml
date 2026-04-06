@@ -1,4 +1,4 @@
-name: Build FlowMind APK
+name: Build FlowMind APK - DEBUG
 
 on:
   push:
@@ -28,17 +28,24 @@ jobs:
           rm -rf \~/.pub-cache
           flutter pub get
 
-      - name: Debug - Before Regeneration
+      - name: DEBUG - Files before regeneration
         run: ls -la
 
-      - name: Completely Regenerate Android Folder (Debug Mode)
+      - name: Completely Regenerate Android Folder (DEBUG)
         run: |
+          echo "=== Deleting old android folder ==="
           rm -rf android build .gradle .flutter-plugins* .metadata android.iml
+          echo "=== Running flutter create ==="
           flutter create temp_project --platforms=android --org=com.flowmind --project-name flowmind
+          echo "=== Copying android folder ==="
           cp -r temp_project/android ./
+          echo "=== Deleting temp project ==="
           rm -rf temp_project
-          echo "✅ Android folder regenerated"
+          echo "=== Android folder regeneration complete ==="
           ls -la android/
+
+      - name: DEBUG - Flutter Doctor
+        run: flutter doctor -v
 
       - name: Fix flutter_local_notifications Linux Issue
         run: |
