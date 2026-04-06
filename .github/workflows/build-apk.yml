@@ -17,7 +17,7 @@ jobs:
       - name: Remove Old Flutter Cache
         run: rm -rf /opt/hostedtoolcache/flutter
 
-      - name: Setup Latest Stable Flutter 3.x
+      - name: Setup Latest Stable Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.x'
@@ -31,15 +31,12 @@ jobs:
           rm -rf \~/.pub-cache
           flutter pub get
 
-      - name: Verify Flutter Version
-        run: flutter --version
-
-      - name: Regenerate Android Folder
+      - name: Completely Regenerate Android Folder (Critical Fix)
         run: |
           rm -rf android
           flutter create . --platforms=android --org=com.flowmind
 
-      - name: Fix flutter_local_notifications Issues (Critical)
+      - name: Fix flutter_local_notifications Linux Issue
         run: |
           cat >> android/app/build.gradle << 'EOF'
 
