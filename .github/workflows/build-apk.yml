@@ -20,23 +20,26 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter (Force Latest)
+      - name: Setup Flutter (Force 3.27.0)
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.27.0'
           channel: 'stable'
           cache: false
 
-      - name: Verify Flutter Version
-        run: flutter --version
+      - name: Verify Flutter & Dart Version
+        run: |
+          flutter --version
+          dart --version
 
-      - name: Clean & Get Dependencies
+      - name: Full Clean + Fresh Dependencies
         run: |
           flutter clean
+          rm -f pubspec.lock
           rm -rf \~/.pub-cache
           flutter pub get
 
-      - name: Fix Gradle permission
+      - name: Fix Gradle
         run: chmod +x android/gradlew || true
 
       - name: Build Release APK
