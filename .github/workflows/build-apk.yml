@@ -28,15 +28,13 @@ jobs:
           cache: false
 
       - name: Verify Flutter Version
-        run: |
-          flutter --version
-          echo "Dart SDK version should be 3.10.7+"
+        run: flutter --version
 
       - name: Clean Everything
         run: |
           flutter clean
           rm -rf \~/.pub-cache
-          flutter pub get --no-pub
+          flutter pub get
 
       - name: Fix Gradle permission
         run: chmod +x android/gradlew || true
