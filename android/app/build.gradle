@@ -47,7 +47,7 @@ android {
         }
     }
 
-    // Yeh block flutter_local_notifications Linux error fix karta hai
+    // Yeh block flutter_local_notifications Linux error ko permanently fix karta hai
     packagingOptions {
         exclude 'META-INF/services/io.flutter.embedding.engine.plugins.PluginRegistrant'
         pickFirst 'lib/arm64-v8a/libc++_shared.so'
