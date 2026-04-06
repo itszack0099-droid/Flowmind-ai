@@ -20,12 +20,15 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter 3.27.0
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.27.0'
-          channel: 'stable'
-          cache: false
+      - name: Manually Install Fresh Flutter 3.27.0
+        run: |
+          rm -rf $GITHUB_WORKSPACE/flutter
+          git clone -b stable --depth 1 https://github.com/flutter/flutter.git $GITHUB_WORKSPACE/flutter
+          echo "$GITHUB_WORKSPACE/flutter/bin" >> $GITHUB_PATH
+          echo "$GITHUB_WORKSPACE/flutter/bin/cache/dart-sdk/bin" >> $GITHUB_PATH
+
+      - name: Verify Flutter Version
+        run: flutter --version
 
       - name: Clean & Get Dependencies
         run: |
@@ -34,13 +37,13 @@ jobs:
           rm -rf \~/.pub-cache
           flutter pub get
 
-      - name: Regenerate Android Folder
+      - name: Regenerate Android Folder (if missing)
         run: |
           if [ ! -d "android" ]; then
             flutter create . --platforms=android --org=com.flowmind
           fi
 
-      - name: Fix Gradle
+      - name: Fix Gradle permission
         run: chmod +x android/gradlew || true
 
       - name: Build Release APK
