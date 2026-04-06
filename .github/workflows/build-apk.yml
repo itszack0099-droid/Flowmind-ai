@@ -20,10 +20,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter 3.27.0 (Dart 3.6.0)
+      - name: Setup Flutter 3.41.6 (Dart 3.11.4)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.27.0'
+          flutter-version: '3.41.6'
           channel: 'stable'
           cache: false
 
