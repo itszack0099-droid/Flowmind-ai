@@ -4,10 +4,11 @@
 FlowMind AI is a Flutter-based Android productivity app for students. It acts as a personal AI mentor with features like AI Brain Dump, Focus Architect, AI Mentor Chat, Exam War Room, XP gamification, and analytics.
 
 ## Tech Stack
-- **Language:** Dart (SDK >= 3.10.7)
-- **Framework:** Flutter 3.27.0+
+- **Language:** Dart (SDK >= 3.5.0 <4.0.0)
+- **Framework:** Flutter 3.27.0+ (Dart 3.6.0)
 - **State Management:** Riverpod
 - **Backend:** Supabase (auth, database)
+- **Firebase:** firebase_core for notifications
 - **Local AI:** llamadart ^0.6.10
 - **UI:** Glassmorphism, Google Fonts, animate_do
 
@@ -23,6 +24,12 @@ lib/
 assets/
 ├── images/                # App images/logos
 └── animations/            # Lottie animations
+android/
+├── gradlew                # Gradle wrapper (executable, committed to repo)
+├── app/
+│   ├── build.gradle.kts   # App build config (applicationId: com.flowmind.flowmind)
+│   └── google-services.json  # Firebase config
+└── settings.gradle.kts    # Includes google-services plugin
 .github/workflows/
 └── build-apk.yml          # GitHub Actions APK build pipeline
 ```
@@ -34,19 +41,28 @@ This is a mobile app — it is built as an Android APK via GitHub Actions:
 
 ## GitHub Actions Workflow (build-apk.yml)
 Key features of the workflow:
-- Flutter 3.27.0 (stable), Java 17
+- Flutter 3.27.0 (stable, Dart 3.6.0), Java 17
 - `cache: false` to always use fresh Flutter/Dart SDK
-- Disables Flutter analytics (`flutter config --no-analytics`)
-- Full cache wipe: `flutter clean`, removes `pubspec.lock` and `~/.pub-cache`
-- Runs `flutter pub get` fresh
-- Builds with `--no-tree-shake-icons` to avoid icon issues
+- Disables Flutter analytics (`flutter config --no-analytics` + `dart --disable-analytics`)
+- Full cache wipe: `flutter clean`, removes `pubspec.lock`, `~/.pub-cache`, `~/.dart`
+- `chmod +x android/gradlew` before building
+- Builds with `--no-tree-shake-icons` for reliability
+
+## Android Package Info
+- Application ID: `com.flowmind.flowmind`
+- Firebase Project: `studio-7713288452-31b03`
+- Gradle: 8.12, AGP: 8.7.3, Kotlin: 2.1.0
 
 ## Environment Variables
-Required secrets (set in Supabase project or .env):
-- `SUPABASE_URL` — already hardcoded in main.dart
-- `SUPABASE_ANON_KEY` — already hardcoded in main.dart
+- `SUPABASE_URL` — hardcoded in main.dart
+- `SUPABASE_ANON_KEY` — hardcoded in main.dart
 - `GROQ_API_KEY` — for AI chat features
+- `GITHUB_TOKEN` — Replit secret for pushing to GitHub
 
-## Notes
-- Dart SDK >= 3.10.7 is required (llamadart dependency)
-- The Replit environment runs Flutter 3.32.0 (Nix) with Dart 3.8.0, which is incompatible with the SDK constraint — builds must be done via GitHub Actions
+## Key Fixes Applied
+1. **pubspec.yaml SDK constraint**: Changed `>=3.10.7` to `>=3.5.0` (Dart 3.10.7 doesn't exist; Flutter 3.27.0 ships Dart 3.6.0)
+2. **android/ directory**: Generated and committed (was completely missing from repo)
+3. **.gitignore**: Removed `android/gradlew` entries — CI needs this file
+4. **applicationId mismatch**: Fixed `com.example.flowmind` → `com.flowmind.flowmind` to match google-services.json
+5. **google-services.json**: Added to `android/app/` directory (required by firebase_core)
+6. **Gradle**: Added `com.google.gms.google-services` plugin (required by firebase_core)
