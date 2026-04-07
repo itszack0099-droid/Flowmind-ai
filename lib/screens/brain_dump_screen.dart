@@ -17,7 +17,6 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
   final LocalLLMService _llm = LocalLLMService();
   final TextEditingController _controller = TextEditingController();
   bool _isProcessing = false;
-  List<Map<String, dynamic>> _tasks = [];
   String _aiSuggestion = '';
 
   @override
@@ -44,12 +43,9 @@ User ka brain dump: "${_controller.text.trim()}"
 
 Tum FlowMind AI ho. Is brain dump ko analyze karo aur structured output do:
 
-1. Tasks list banao
-2. Priorities set karo
-3. Suggested schedule
-4. Ek motivating AI tip
+Tasks list banao, priorities set karo, suggested schedule do, aur ek motivating AI tip do.
 
-Output sirf yeh format mein do (JSON style):
+Output sirf yeh format mein do:
 {
   "tasks": ["task1", "task2"],
   "priorities": ["high", "medium"],
@@ -61,13 +57,9 @@ Output sirf yeh format mein do (JSON style):
     try {
       final response = await _llm.getResponse(prompt);
 
-      // Parse response (simple fallback)
-      setState(() {
-        _aiSuggestion = response;
-        _tasks = []; // agar JSON parse karna ho toh baad mein add kar sakte hain
-      });
+      setState(() => _aiSuggestion = response);
 
-      // Save to Supabase (original logic)
+      // Save to Supabase
       await Supabase.instance.client.from('brain_dumps').insert({
         'content': _controller.text,
         'ai_response': response,
@@ -75,7 +67,7 @@ Output sirf yeh format mein do (JSON style):
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Brain Dump processed successfully!")),
+        const SnackBar(content: Text("✅ Brain Dump processed!")),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
