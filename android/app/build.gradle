@@ -35,8 +35,8 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.debug
-            minifyEnabled true           // ← Yeh line change ki hai
-            shrinkResources true         // ← Yeh line change ki hai
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
