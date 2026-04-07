@@ -74,9 +74,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     final result = await FilePicker.platform.pickFiles();
     if (result == null) return;
 
-    setState(() {
-      _isTyping = true;
-    });
+    setState(() => _isTyping = true);
 
     try {
       final file = File(result.files.single.path!);
@@ -155,7 +153,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
               ),
             ),
 
-          // Input Bar
           Container(
             padding: const EdgeInsets.all(12),
             decoration: const BoxDecoration(
