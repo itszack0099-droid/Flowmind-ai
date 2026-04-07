@@ -1,4 +1,4 @@
-name: Build FlowMind APK - FINAL FIX
+name: Build FlowMind APK - NEW PROJECT METHOD
 
 on:
   push:
@@ -21,21 +21,32 @@ jobs:
           channel: 'stable'
           cache: false
 
-      - name: Clean Everything
+      - name: Create Fresh New Flutter Project (Exact Fix)
         run: |
           flutter clean
           rm -f pubspec.lock
           rm -rf \~/.pub-cache
+          rm -rf android build
 
-      - name: Create Fresh Android Folder (Exact Flutter Suggestion)
-        run: |
-          rm -rf android build .gradle .flutter-plugins* .metadata android.iml
-          flutter create temp_project --platforms=android --org=com.flowmind --project-name flowmind
-          cp -r temp_project/android ./
-          rm -rf temp_project
-          echo "✅ Fresh android folder created using flutter create"
+          # Naya clean project create karo
+          flutter create temp_new_project --platforms=android --org=com.flowmind --project-name flowmind
 
-      - name: Fix flutter_local_notifications Linux Issue
+          # Purane project ke important files copy kar do
+          cp -r temp_new_project/android ./
+          cp pubspec.yaml temp_new_project/
+          cp -r lib/ temp_new_project/lib/
+          cp -r assets/ temp_new_project/assets/ 2>/dev/null || true
+          cp -r .github/ temp_new_project/ 2>/dev/null || true
+
+          # Naye project mein move kar do
+          rm -rf temp_new_project
+          mv temp_new_project/* ./
+          mv temp_new_project/.* ./ 2>/dev/null || true
+          rm -rf temp_new_project
+
+          echo "✅ Fresh project created and old code moved"
+
+      - name: Fix flutter_local_notifications Issue
         run: |
           cat >> android/app/build.gradle << 'EOF'
 
