@@ -1,4 +1,4 @@
-name: Build FlowMind APK - FINAL
+name: Build FlowMind APK - Fresh Project
 
 on:
   push:
@@ -28,13 +28,13 @@ jobs:
           rm -rf \~/.pub-cache
           flutter pub get
 
-      - name: Create Fresh Android Folder (Exact Flutter Fix)
+      - name: Create Completely Fresh Android Folder
         run: |
           rm -rf android build .gradle .flutter-plugins* .metadata android.iml
           flutter create temp_project --platforms=android --org=com.flowmind --project-name flowmind
           cp -r temp_project/android ./
           rm -rf temp_project
-          echo "✅ Fresh android folder created"
+          echo "✅ Fresh android folder created using flutter create"
 
       - name: Fix flutter_local_notifications Linux Issue
         run: |
