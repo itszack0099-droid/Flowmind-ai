@@ -1,132 +1,86 @@
 import 'dart:io';
-import 'package:docx_to_text/docx_to_text.dart';
+import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
-import 'package:http/http.dart' as http;
-import 'package:youtube_transcript_api/youtube_transcript_api.dart'; // agar already added hai toh theek, nahi toh pubspec mein add kar lena
-import '../services/local_llm_service.dart';
+import 'package:docx_to_text/docx_to_text.dart';
+import 'package:youtube_transcript_api/youtube_transcript_api.dart';
+import 'local_llm_service.dart';
 
 class SummarizerService {
   static final LocalLLMService _llm = LocalLLMService();
 
-  // ─── FILE EXTRACTION (Local & Offline) ─────────────────────────────────
-  static Future<String> extractPdfText(String filePath) async {
+  // Extract text from any file
+  static Future<String> extractTextFromFile(File file) async {
+    final extension = file.path.split('.').last.toLowerCase();
+
     try {
-      final document = await PdfDocument.openFile(filePath);
-      String fullText = '';
-      for (int i = 1; i <= document.pagesCount; i++) {
-        final page = await document.getPage(i);
-        final pageText = await page.text;
-        fullText += '${pageText.text}\n';
+      if (extension == 'pdf') {
+        return await _extractPdfText(file);
+      } else if (extension == 'docx') {
+        return await _extractDocxText(file);
+      } else if (extension == 'txt') {
+        return await file.readAsString();
+      } else {
+        return "Unsupported file type: $extension";
       }
-      return fullText.trim();
     } catch (e) {
-      return 'ERROR: Could not read PDF file';
+      debugPrint("File extraction error: $e");
+      return "Error reading file: $e";
     }
   }
 
-  static Future<String> extractDocxText(String filePath) async {
-    try {
-      final file = File(filePath);
-      final bytes = await file.readAsBytes();
-      final docxText = await DocxToText(bytes).parse();
-      return docxText;
-    } catch (e) {
-      return 'ERROR: Could not read DOCX file';
+  static Future<String> _extractPdfText(File file) async {
+    final document = await PdfDocument.openFile(file.path);
+    String fullText = '';
+    for (int i = 1; i <= document.pagesCount; i++) {
+      final page = await document.getPage(i);
+      final pageText = await page.text;           // Correct method in pdfx
+      fullText += pageText + '\n';
+      await page.close();
     }
+    await document.close();
+    return fullText;
   }
 
-  static Future<String> readTextFile(String filePath) async {
+  static Future<String> _extractDocxText(File file) async {
+    final bytes = await file.readAsBytes();
+    return await DocxToText(bytes).parse();
+  }
+
+  // YouTube transcript
+  static Future<String> getYouTubeTranscript(String videoId) async {
     try {
-      final file = File(filePath);
-      return await file.readAsString();
-    } catch (e) {
-      return 'ERROR: Could not read text file';
-    }
-  }
-
-  static Future<String> transcribeAudio(String filePath, String fileName) async {
-    // Currently placeholder (Whisper local model heavy hai)
-    // Future mein local whisper add kar sakte hain
-    return 'ERROR: Audio transcription coming soon with local model. For now use text/PDF/DOCX.';
-  }
-
-  static Future<String> getYouTubeTranscript(String url) async {
-    try {
-      final videoId = url.split('v=')[1].split('&')[0];
       final transcript = await YoutubeTranscriptApi().getTranscript(videoId);
       return transcript.map((line) => line.text).join(' ');
     } catch (e) {
-      return 'ERROR: Could not fetch YouTube transcript. Make sure video has captions enabled.';
+      return "Could not fetch YouTube transcript.";
     }
   }
 
-  // ─── MAIN AI PROCESSING (Local LLM) ─────────────────────────────────
-  static Future<String> processWithAI({
-    required String text,
-    required String action,
-    required String fileName,
-  }) async {
-    String systemPrompt = '';
+  // Process with AI (summarize, explain, quiz, etc.)
+  static Future<String> processWithAI(String text, String action) async {
+    String prompt = '';
 
-    switch (action) {
+    switch (action.toLowerCase()) {
       case 'summarize':
-        systemPrompt = '''
-You are FlowMind AI - expert summarizer.
-Create a clean, short, bullet-point summary of the content.
-Focus on key points, important facts, and actionable takeaways.
-Keep it under 300 words. Use Hindi + English mix if needed.
-''';
+        prompt = "Summarize the following text in simple Hindi-English mix:\n\n$text";
         break;
-
       case 'explain':
-        systemPrompt = '''
-You are FlowMind AI - friendly study coach.
-Explain the content in very simple language for students.
-Use easy examples, analogies, and step-by-step breakdown.
-Make it engaging and motivating.
-''';
+        prompt = "Explain the following text like a friendly teacher:\n\n$text";
         break;
-
       case 'quiz':
-        systemPrompt = '''
-You are FlowMind AI - quiz master.
-Create 5 high-quality multiple choice questions with 4 options each.
-Include correct answer and short explanation for every question.
-Format it nicely with emojis.
-''';
+        prompt = "Create 5 short quiz questions from this text with answers:\n\n$text";
         break;
-
       case 'keypoints':
-        systemPrompt = '''
-You are FlowMind AI - key points extractor.
-Extract the top 8-10 most important key points from the content.
-Number them and make them short and powerful.
-''';
+        prompt = "Extract 5-7 important key points from this text:\n\n$text";
         break;
-
       default:
-        systemPrompt = 'You are FlowMind AI. Help the user with the given content.';
+        prompt = "Process this text and give useful insights:\n\n$text";
     }
 
-    final fullPrompt = '''
-<system>
-$systemPrompt
-</system>
-
-<content>
-$text
-</content>
-
-<task>
-$fileName - $action
-</task>
-''';
-
     try {
-      final response = await _llm.getResponse(fullPrompt);
-      return response;
+      return await _llm.getResponse(prompt);
     } catch (e) {
-      return 'ERROR: Local AI failed to process. Please try again.';
+      return "Sorry, AI processing failed. Please try again.";
     }
   }
 }
