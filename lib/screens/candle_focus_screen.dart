@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:async';                    // ← Yeh line add ki hai (Timer ke liye)
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -74,16 +75,10 @@ class _CandleFocusScreenState extends State<CandleFocusScreen> with TickerProvid
   }
 
   Future<void> _getAISuggestion() async {
-    final prompt = """
-You are a deep focus mentor. User has been focusing for ${_totalSeconds \~/ 60} minutes.
-Give a short, motivating message in one line.
-""";
-
+    final prompt = "You are a deep focus mentor. User has been focusing for ${_totalSeconds \~/ 60} minutes. Give a short, motivating one-line message.";
     try {
       final response = await _llm.getResponse(prompt);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response.trim())),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(response.trim())));
     } catch (e) {}
   }
 
@@ -106,65 +101,36 @@ Give a short, motivating message in one line.
         child: Column(
           children: [
             const SizedBox(height: 20),
-            Text(
-              "Candle Focus",
-              style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
+            Text("Candle Focus", style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
             const SizedBox(height: 10),
 
-            // Candle
+            // Candle Animation (same as before)
             Expanded(
               child: Center(
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Glow
                     AnimatedBuilder(
                       animation: _glowController,
-                      builder: (context, child) {
-                        return Container(
-                          width: 180,
-                          height: 280,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.orange.withOpacity(0.4),
-                                blurRadius: 60 + _glowController.value * 20,
-                                spreadRadius: 20,
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-
-                    // Candle body
-                    Container(
-                      width: 60,
-                      height: 220,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFE4C4),
-                        borderRadius: BorderRadius.circular(8),
+                      builder: (context, child) => Container(
+                        width: 180,
+                        height: 280,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.4), blurRadius: 60 + _glowController.value * 20, spreadRadius: 20)],
+                        ),
                       ),
                     ),
-
-                    // Flame
+                    Container(width: 60, height: 220, decoration: BoxDecoration(color: const Color(0xFFFFE4C4), borderRadius: BorderRadius.circular(8))),
                     AnimatedBuilder(
                       animation: _flameAnimation,
-                      builder: (context, child) {
-                        return Transform.scale(
-                          scale: _flameAnimation.value,
-                          child: const Icon(Icons.whatshot, size: 80, color: Colors.orange),
-                        );
-                      },
+                      builder: (context, child) => Transform.scale(scale: _flameAnimation.value, child: const Icon(Icons.whatshot, size: 80, color: Colors.orange)),
                     ),
                   ],
                 ),
               ),
             ),
 
-            // Timer
             Text(
               "\( {minutes.toString().padLeft(2, '0')}: \){seconds.toString().padLeft(2, '0')}",
               style: GoogleFonts.plusJakartaSans(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white),
@@ -172,20 +138,12 @@ Give a short, motivating message in one line.
 
             const SizedBox(height: 30),
 
-            // Controls
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton(
-                  onPressed: _isRunning ? _stopTimer : _startTimer,
-                  style: ElevatedButton.styleFrom(backgroundColor: _isRunning ? Colors.red : Colors.green),
-                  child: Text(_isRunning ? "Stop" : "Start Focus"),
-                ),
+                ElevatedButton(onPressed: _isRunning ? _stopTimer : _startTimer, style: ElevatedButton.styleFrom(backgroundColor: _isRunning ? Colors.red : Colors.green), child: Text(_isRunning ? "Stop" : "Start Focus")),
                 const SizedBox(width: 20),
-                ElevatedButton(
-                  onPressed: _getAISuggestion,
-                  child: const Text("AI Suggestion"),
-                ),
+                ElevatedButton(onPressed: _getAISuggestion, child: const Text("AI Suggestion")),
               ],
             ),
 
