@@ -6,7 +6,6 @@ import 'package:app_links/app_links.dart';
 import 'theme/app_theme.dart';
 import 'screens/splash_screen.dart';
 import 'screens/reset_password_screen.dart';
-import 'services/notification_service.dart';
 
 const String supabaseUrl =
     'https://siujmsbmvwxxbdhlihgd.supabase.co';
