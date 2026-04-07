@@ -53,7 +53,6 @@ class _FlowMindAppState extends State<FlowMindApp> {
   void initState() {
     super.initState();
     _initDeepLinks();
-    NotificationService.initialize();
   }
 
   void _initDeepLinks() async {
