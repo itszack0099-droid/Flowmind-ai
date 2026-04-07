@@ -1,13 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:llamadart/llamadart.dart';
+import 'package:path_provider/path_provider.dart';
 import 'model_downloader.dart';
 
 class LocalLLMService {
   Llama? _llama;
   bool _isInitialized = false;
-
-  static const bool _devModeSkipDownload = false; // testing ke liye true kar sakte ho
 
   Future<void> initializeModel({
     Function(double)? onProgress,
@@ -20,8 +19,7 @@ class LocalLLMService {
       final modelPath = '${dir.path}/qwen2.5-0.5b-q4_k_m.gguf';
       final modelFile = File(modelPath);
 
-      // Model download
-      if (!await modelFile.exists() && !_devModeSkipDownload) {
+      if (!await modelFile.exists()) {
         if (onStatus != null) onStatus("Downloading AI Model...");
         await ModelDownloader.downloadModel(onProgress: onProgress ?? (p) {});
       }
@@ -57,7 +55,7 @@ class LocalLLMService {
       return response;
     } catch (e) {
       debugPrint("LLM Response Error: $e");
-      return "Sorry, I couldn't generate a response right now. Please try again.";
+      return "Sorry, I couldn't generate a response right now.";
     }
   }
 
