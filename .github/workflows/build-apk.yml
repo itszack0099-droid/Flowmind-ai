@@ -1,4 +1,4 @@
-name: Build FlowMind APK - Fresh Project
+name: Build FlowMind APK
 
 on:
   push:
@@ -14,50 +14,42 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Latest Stable Flutter
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter (Stable)
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.x'
           channel: 'stable'
           cache: false
 
-      - name: Force Fresh Dependencies
+      - name: Disable Flutter Analytics
+        run: |
+          flutter config --no-analytics
+          dart --disable-analytics
+
+      - name: Install Dependencies
         run: |
           flutter clean
           rm -f pubspec.lock
-          rm -rf \~/.pub-cache
           flutter pub get
 
-      - name: Create Completely Fresh Android Folder
+      - name: Write local.properties
         run: |
-          rm -rf android build .gradle .flutter-plugins* .metadata android.iml
-          flutter create temp_project --platforms=android --org=com.flowmind --project-name flowmind
-          cp -r temp_project/android ./
-          rm -rf temp_project
-          echo "✅ Fresh android folder created"
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+          echo "flutter.sdk=$(which flutter | xargs dirname | xargs dirname)" >> android/local.properties
 
-      - name: Fix flutter_local_notifications Linux Issue
-        run: |
-          cat >> android/app/build.gradle << 'EOF'
-
-          android {
-              packagingOptions {
-                  exclude 'META-INF/services/io.flutter.embedding.engine.plugins.PluginRegistrant'
-                  pickFirst 'lib/arm64-v8a/libc++_shared.so'
-                  pickFirst 'lib/armeabi-v7a/libc++_shared.so'
-                  pickFirst 'lib/x86/libc++_shared.so'
-                  pickFirst 'lib/x86_64/libc++_shared.so'
-              }
-          }
-          EOF
-
-      - name: Fix Gradle Permission
-        run: chmod +x android/gradlew || true
+      - name: Make gradlew Executable
+        run: chmod +x android/gradlew
 
       - name: Build Release APK
         run: flutter build apk --release --no-tree-shake-icons
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: FlowMind-APK
