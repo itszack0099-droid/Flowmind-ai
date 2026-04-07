@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'dart:async';                    // ← Yeh line add ki hai (Timer ke liye)
+import 'dart:async';   // ← Yeh line zaroori hai (Timer ke liye)
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -104,7 +104,6 @@ class _CandleFocusScreenState extends State<CandleFocusScreen> with TickerProvid
             Text("Candle Focus", style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
             const SizedBox(height: 10),
 
-            // Candle Animation (same as before)
             Expanded(
               child: Center(
                 child: Stack(
@@ -141,9 +140,16 @@ class _CandleFocusScreenState extends State<CandleFocusScreen> with TickerProvid
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton(onPressed: _isRunning ? _stopTimer : _startTimer, style: ElevatedButton.styleFrom(backgroundColor: _isRunning ? Colors.red : Colors.green), child: Text(_isRunning ? "Stop" : "Start Focus")),
+                ElevatedButton(
+                  onPressed: _isRunning ? _stopTimer : _startTimer,
+                  style: ElevatedButton.styleFrom(backgroundColor: _isRunning ? Colors.red : Colors.green),
+                  child: Text(_isRunning ? "Stop" : "Start Focus"),
+                ),
                 const SizedBox(width: 20),
-                ElevatedButton(onPressed: _getAISuggestion, child: const Text("AI Suggestion")),
+                ElevatedButton(
+                  onPressed: _getAISuggestion,
+                  child: const Text("AI Suggestion"),
+                ),
               ],
             ),
 
