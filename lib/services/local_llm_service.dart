@@ -19,13 +19,12 @@ class LocalLLMService {
       final modelPath = '${dir.path}/qwen2.5-0.5b-q4_k_m.gguf';
       final modelFile = File(modelPath);
 
-      // Model download if not exists
       if (!await modelFile.exists()) {
         if (onStatus != null) onStatus("Downloading AI Model...");
         await ModelDownloader.downloadModel(onProgress: onProgress ?? (p) {});
       }
 
-      if (onStatus != null) onStatus("Loading model into memory...");
+      if (onStatus != null) onStatus("Loading model...");
 
       _llama = Llama();
       await _llama!.loadModel(
