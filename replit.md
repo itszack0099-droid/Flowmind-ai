@@ -9,7 +9,7 @@ FlowMind AI is a Flutter-based Android productivity app for students. It acts as
 - **State Management:** Riverpod
 - **Backend:** Supabase (auth, database)
 - **Firebase:** firebase_core for notifications
-- **Local AI:** llamadart ^0.6.10
+- **Local AI:** Ollama HTTP API (pure Dart, no native deps) — replaces llamadart
 - **UI:** Glassmorphism, Google Fonts, animate_do
 
 ## Project Structure
@@ -59,9 +59,11 @@ Key features of the workflow:
 - `GITHUB_TOKEN` — Replit secret for pushing to GitHub
 
 ## AI Architecture
-- **No Groq**: All AI processing is handled locally on-device via llamadart
-- **Local LLM**: Qwen2.5-0.5B-Instruct (GGUF format, ~380MB) downloaded once from HuggingFace
-- **Offline after download**: No cloud AI calls at runtime
+- **No Groq**: All AI processing is handled via local Ollama server — no cloud AI
+- **Local LLM**: Ollama running Qwen2.5:0.5b on user's machine (PC/Mac on same WiFi)
+- **Pure Dart**: LocalLLMService uses http package only — no native compilation required
+- **Configurable**: Users can set Ollama URL and model name from the app's AI setup screen
+- **Default URL**: http://10.0.2.2:11434 (Android emulator → host machine)
 
 ## Key Fixes Applied
 1. **pubspec.yaml SDK constraint**: Changed `>=3.10.7` to `>=3.5.0` (Dart 3.10.7 doesn't exist; Flutter 3.27.0 ships Dart 3.6.0)
@@ -72,3 +74,5 @@ Key features of the workflow:
 6. **Gradle**: Added `com.google.gms.google-services` plugin (required by firebase_core)
 7. **Groq removed**: Removed all GROQ_API_KEY references from docs; app uses local LLM only
 8. **Build workflow**: Improved CI to copy google-services.json, configure google-services plugin, and set minSdk=24
+9. **llamadart removed**: llamadart >=0.2.0 required SDK >=3.10.7 (non-existent), breaking pub get; replaced with pure-Dart Ollama HTTP client — no native deps, builds with any Dart 3.5+
+10. **LocalLLMService rewritten**: Now uses Ollama HTTP API; model_downloader checks connectivity; model_download_screen shows Ollama setup UI

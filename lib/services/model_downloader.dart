@@ -1,40 +1,33 @@
-import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 
 class ModelDownloader {
-  static const String modelUrl =
-      'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-q4_k_m.gguf';
+  static const String defaultBaseUrl = 'http://10.0.2.2:11434';
+
+  static Future<bool> checkOllamaConnectivity({
+    String baseUrl = defaultBaseUrl,
+    Function(double)? onProgress,
+  }) async {
+    try {
+      onProgress?.call(0.3);
+      final response = await http
+          .get(Uri.parse('$baseUrl/api/tags'))
+          .timeout(const Duration(seconds: 8));
+      onProgress?.call(1.0);
+      return response.statusCode == 200;
+    } catch (_) {
+      onProgress?.call(0.0);
+      return false;
+    }
+  }
 
   static Future<String?> downloadModel({
     required Function(double) onProgress,
+    String baseUrl = defaultBaseUrl,
   }) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final modelPath = '${dir.path}/qwen2.5-0.5b-q4_k_m.gguf';
-    final file = File(modelPath);
-
-    if (await file.exists()) return modelPath;
-
-    try {
-      final response = await http.Client().send(http.Request('GET', Uri.parse(modelUrl)));
-      final contentLength = response.contentLength ?? 0;
-      final sink = file.openWrite();
-      int received = 0;
-
-      await response.stream.forEach((chunk) {
-        sink.add(chunk);
-        received += chunk.length;
-        if (contentLength > 0) {
-          final progress = received / contentLength;
-          onProgress(progress);
-        }
-      });
-
-      await sink.close();
-      return modelPath;
-    } catch (e) {
-      debugPrint("Download error: $e");
-      return null;
-    }
+    final connected = await checkOllamaConnectivity(
+      baseUrl: baseUrl,
+      onProgress: onProgress,
+    );
+    return connected ? baseUrl : null;
   }
 }

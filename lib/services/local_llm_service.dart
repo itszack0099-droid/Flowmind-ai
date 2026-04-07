@@ -1,12 +1,15 @@
-import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:llamadart/llamadart.dart';
-import 'package:path_provider/path_provider.dart';
-import 'model_downloader.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalLLMService {
-  Llama? _llama;
   bool _isInitialized = false;
+  String _baseUrl = 'http://10.0.2.2:11434';
+  String _model = 'qwen2.5:0.5b';
+
+  static const String _prefKeyUrl = 'ollama_base_url';
+  static const String _prefKeyModel = 'ollama_model';
 
   Future<void> initializeModel({
     Function(double)? onProgress,
@@ -15,53 +18,80 @@ class LocalLLMService {
     if (_isInitialized) return;
 
     try {
-      final dir = await getApplicationDocumentsDirectory();
-      final modelPath = '${dir.path}/qwen2.5-0.5b-q4_k_m.gguf';
-      final modelFile = File(modelPath);
+      final prefs = await SharedPreferences.getInstance();
+      _baseUrl = prefs.getString(_prefKeyUrl) ?? _baseUrl;
+      _model = prefs.getString(_prefKeyModel) ?? _model;
 
-      if (!await modelFile.exists()) {
-        if (onStatus != null) onStatus("Downloading AI Model...");
-        await ModelDownloader.downloadModel(onProgress: onProgress ?? (p) {});
+      if (onStatus != null) onStatus("Connecting to local AI...");
+
+      final reachable = await checkConnectivity();
+      if (reachable) {
+        _isInitialized = true;
+        if (onStatus != null) onStatus("✅ Local AI connected");
+      } else {
+        _isInitialized = true;
+        if (onStatus != null) onStatus("⚠️ Local AI not reachable — responses will be offline");
       }
-
-      if (onStatus != null) onStatus("Loading model into memory...");
-
-      _llama = Llama();
-      await _llama!.loadModel(
-        modelPath: modelPath,
-        contextSize: 4096,
-        threads: 4,
-      );
-
-      _isInitialized = true;
-      if (onStatus != null) onStatus("✅ Model loaded successfully");
     } catch (e) {
-      debugPrint("LLM Initialization Error: $e");
-      rethrow;
+      _isInitialized = true;
+      debugPrint("LocalLLM init error: $e");
+    }
+  }
+
+  Future<bool> checkConnectivity() async {
+    try {
+      final response = await http
+          .get(Uri.parse('$_baseUrl/api/tags'))
+          .timeout(const Duration(seconds: 5));
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
     }
   }
 
   Future<String> getResponse(String prompt) async {
-    if (_llama == null) {
-      throw Exception("Model not initialized. Call initializeModel() first.");
-    }
-
     try {
-      final response = await _llama!.getResponse(
-        prompt: prompt,
-        temperature: 0.7,
-        maxTokens: 1024,
-      );
-      return response;
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/api/generate'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'model': _model,
+              'prompt': prompt,
+              'stream': false,
+              'options': {
+                'temperature': 0.7,
+                'num_predict': 512,
+              },
+            }),
+          )
+          .timeout(const Duration(seconds: 60));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return data['response'] as String? ?? "No response from local AI.";
+      } else {
+        return "Local AI returned an error (${response.statusCode}). Please check your Ollama server.";
+      }
     } catch (e) {
       debugPrint("LLM Response Error: $e");
-      return "Sorry, I couldn't generate a response right now.";
+      return "Local AI is not reachable. Please ensure Ollama is running at $_baseUrl with model '$_model'.";
     }
   }
 
+  Future<void> saveSettings(String baseUrl, String model) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefKeyUrl, baseUrl);
+    await prefs.setString(_prefKeyModel, model);
+    _baseUrl = baseUrl;
+    _model = model;
+    _isInitialized = false;
+  }
+
+  String get baseUrl => _baseUrl;
+  String get model => _model;
+
   void dispose() {
-    _llama?.dispose();
-    _llama = null;
     _isInitialized = false;
   }
 
