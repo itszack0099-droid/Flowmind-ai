@@ -35,7 +35,8 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.debug
-            minifyEnabled false
+            minifyEnabled true           // ← Yeh line change ki hai
+            shrinkResources true         // ← Yeh line change ki hai
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
@@ -56,7 +57,7 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.0"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.0.0"
     implementation platform("com.google.firebase:firebase-bom:32.7.0")
     implementation "com.google.firebase:firebase-analytics"
     implementation "androidx.multidex:multidex:2.0.1"
