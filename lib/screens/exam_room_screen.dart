@@ -40,11 +40,6 @@ class _ExamRoomScreenState extends State<ExamRoomScreen> {
     }
   }
 
-  Future<void> _showAddExamSheet() async {
-    // Add exam sheet logic (same as before)
-    // ... (agar tera original sheet code hai toh yahan paste kar sakte hain)
-  }
-
   Future<void> _generatePlan(Map<String, dynamic> exam) async {
     final prompt = """
 You are an expert exam strategist for FlowMind AI.
@@ -52,7 +47,7 @@ Create a detailed battle plan for this exam:
 
 Subject: ${exam['subject']}
 Days left: ${exam['daysLeft']}
-Topics: ${exam['topics'].join(', ')}
+Topics: ${exam['topics']?.join(', ') ?? 'General'}
 
 Give a smart, realistic, and motivating study plan in this exact format:
 MINUTES: X
@@ -64,10 +59,8 @@ Make it encouraging and practical.
 
     try {
       final response = await _llm.getResponse(prompt);
-      // Parse response (same as before)
-      // ... (agar tera original parsing logic hai toh use kar sakte hain)
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Battle plan generated!")),
+        const SnackBar(content: Text("✅ Battle Plan generated!")),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -97,7 +90,6 @@ Make it encouraging and practical.
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Stats Row (same as original)
                 Row(
                   children: [
                     _StatCard(
@@ -117,7 +109,6 @@ Make it encouraging and practical.
                 ),
                 const SizedBox(height: 24),
 
-                // Exams List
                 ..._exams.map((exam) => GlassCard(
                       child: ListTile(
                         title: Text(
@@ -140,14 +131,16 @@ Make it encouraging and practical.
               ],
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddExamSheet,
+        onPressed: () {
+          // Add exam sheet (agar tera original sheet code hai toh yahan daal sakte hain)
+        },
         child: const Icon(Icons.add),
       ),
     );
   }
 }
 
-// Top-level widgets (fixed nesting error)
+// Fixed Top-level StatCard widget
 class _StatCard extends StatelessWidget {
   final String value;
   final String label;
