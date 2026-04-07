@@ -1,68 +1,71 @@
-static const bool _devModeSkipDownload = true';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:llamadart/llamadart.dart';
 import 'model_downloader.dart';
 
 class LocalLLMService {
   Llama? _llama;
-  String? _modelPath;
-  bool _isModelLoaded = false;
+  bool _isInitialized = false;
 
-  bool get isModelLoaded => _isModelLoaded;
+  static const bool _devModeSkipDownload = false; // testing ke liye true kar sakte ho
 
   Future<void> initializeModel({
-    required Function(double) onDownloadProgress,
-    required Function(String) onStatusUpdate,
+    Function(double)? onProgress,
+    Function(String)? onStatus,
   }) async {
-    try {
-      onStatusUpdate("AI Model download ho raha hai...");
-      _modelPath = await ModelDownloader.downloadModel(onProgress: onDownloadProgress);
+    if (_isInitialized) return;
 
-      if (_modelPath == null) {
-        onStatusUpdate("Download failed");
-        return;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final modelPath = '${dir.path}/qwen2.5-0.5b-q4_k_m.gguf';
+      final modelFile = File(modelPath);
+
+      // Model download
+      if (!await modelFile.exists() && !_devModeSkipDownload) {
+        if (onStatus != null) onStatus("Downloading AI Model...");
+        await ModelDownloader.downloadModel(onProgress: onProgress ?? (p) {});
       }
 
-      onStatusUpdate("Model load ho raha hai...");
+      if (onStatus != null) onStatus("Loading model into memory...");
 
-      _llama = Llama(modelPath: _modelPath!, contextSize: 4096, threads: 4);
-      await _llama!.loadModel();
-      _isModelLoaded = true;
+      _llama = Llama();
+      await _llama!.loadModel(
+        modelPath: modelPath,
+        contextSize: 4096,
+        threads: 4,
+      );
 
-      onStatusUpdate("✅ AI Model ready hai!");
+      _isInitialized = true;
+      if (onStatus != null) onStatus("✅ Model loaded successfully");
     } catch (e) {
-      onStatusUpdate("Error: $e");
+      debugPrint("LLM Initialization Error: $e");
+      rethrow;
     }
   }
 
-  Future<String> getResponse(String userMessage) async {
-    if (_llama == null || !_isModelLoaded) {
-      return "AI abhi load ho raha hai...";
+  Future<String> getResponse(String prompt) async {
+    if (_llama == null) {
+      throw Exception("Model not initialized. Call initializeModel() first.");
     }
 
     try {
-      final response = await _llama!.chat(
-        prompt: """
-<system>
-Tu FlowMind AI ka smart mentor hai. Productivity, study aur life management mein help kar. Hindi + English mix mein friendly jawab de.
-</system>
-
-<user>
-$userMessage
-</user>
-""",
-        maxTokens: 1024,
+      final response = await _llama!.getResponse(
+        prompt: prompt,
         temperature: 0.7,
+        maxTokens: 1024,
       );
-      return response.text.trim();
+      return response;
     } catch (e) {
-      return "Kuch error aa gaya. Baad mein try karo.";
+      debugPrint("LLM Response Error: $e");
+      return "Sorry, I couldn't generate a response right now. Please try again.";
     }
   }
 
   void dispose() {
     _llama?.dispose();
     _llama = null;
-    _isModelLoaded = false;
+    _isInitialized = false;
   }
+
+  bool get isInitialized => _isInitialized;
 }
