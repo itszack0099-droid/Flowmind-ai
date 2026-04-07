@@ -34,7 +34,7 @@ jobs:
           flutter create temp_project --platforms=android --org=com.flowmind --project-name flowmind
           cp -r temp_project/android ./
           rm -rf temp_project
-          echo "✅ Fresh android folder created using flutter create"
+          echo "✅ Fresh android folder created"
 
       - name: Fix flutter_local_notifications Linux Issue
         run: |
