@@ -65,8 +65,7 @@ class _FlowMindAppState extends State<FlowMindApp> {
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       if (data.event == AuthChangeEvent.passwordRecovery) {
         navigatorKey.currentState?.push(
-          MaterialPageRoute(
-              builder: (_) => const ResetPasswordScreen()),
+          MaterialPageRoute(builder: (_) => const ResetPasswordScreen()),
         );
       }
     });
@@ -75,8 +74,7 @@ class _FlowMindAppState extends State<FlowMindApp> {
   void _handleDeepLink(Uri uri) {
     if (uri.scheme == 'flowmind' && uri.host == 'reset-password') {
       navigatorKey.currentState?.push(
-        MaterialPageRoute(
-            builder: (_) => const ResetPasswordScreen()),
+        MaterialPageRoute(builder: (_) => const ResetPasswordScreen()),
       );
     }
   }
