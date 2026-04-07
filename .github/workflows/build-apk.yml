@@ -1,4 +1,4 @@
-name: Build FlowMind APK - FINAL
+name: Build FlowMind APK
 
 on:
   push:
@@ -14,30 +14,113 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Latest Stable Flutter
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
+          flutter-version: '3.27.4'
           channel: 'stable'
-          cache: false
+          cache: true
 
-      - name: Clean Everything
+      - name: Disable Flutter Analytics
+        run: |
+          flutter config --no-analytics
+          dart --disable-analytics || true
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Create Android Project
         run: |
           flutter clean
-          rm -f pubspec.lock
-          rm -rf \~/.pub-cache
-          rm -rf android build .gradle .flutter-plugins* .metadata android.iml
-
-      - name: Create Fresh Android Folder
-        run: |
           flutter create temp_project --platforms=android --org=com.flowmind --project-name flowmind
           cp -r temp_project/android ./
           rm -rf temp_project
-          echo "✅ Fresh android folder created"
+          chmod +x android/gradlew
+          echo "✅ Android folder created"
           ls -la android/
 
-      - name: Fix Gradle Permission
-        run: chmod +x android/gradlew || true
+      - name: Copy Firebase Config
+        run: |
+          cp google-services.json android/app/google-services.json
+          echo "✅ google-services.json copied to android/app/"
+
+      - name: Configure Google Services Plugin
+        run: |
+          python3 << 'PYEOF'
+          import re, sys
+
+          # --- settings.gradle.kts: add google-services to pluginManagement ---
+          try:
+              with open('android/settings.gradle.kts', 'r') as f:
+                  settings = f.read()
+
+              if 'com.google.gms.google-services' not in settings:
+                  # Insert before closing brace of the plugins {} block in pluginManagement
+                  settings = settings.replace(
+                      'id("dev.flutter.flutter-gradle-plugin")',
+                      'id("com.google.gms.google-services") version "4.4.1" apply false\n    id("dev.flutter.flutter-gradle-plugin")'
+                  )
+                  with open('android/settings.gradle.kts', 'w') as f:
+                      f.write(settings)
+                  print("✅ Added google-services plugin to settings.gradle.kts")
+              else:
+                  print("ℹ️  google-services already in settings.gradle.kts")
+          except Exception as e:
+              print(f"⚠️  settings.gradle.kts: {e}")
+
+          # --- app/build.gradle.kts: apply google-services plugin ---
+          try:
+              with open('android/app/build.gradle.kts', 'r') as f:
+                  app_build = f.read()
+
+              if 'com.google.gms.google-services' not in app_build:
+                  # Add inside plugins block
+                  app_build = app_build.replace(
+                      'id("dev.flutter.flutter-gradle-plugin")',
+                      'id("dev.flutter.flutter-gradle-plugin")\n    id("com.google.gms.google-services")'
+                  )
+                  with open('android/app/build.gradle.kts', 'w') as f:
+                      f.write(app_build)
+                  print("✅ Applied google-services plugin in app/build.gradle.kts")
+              else:
+                  print("ℹ️  google-services already in app/build.gradle.kts")
+          except Exception as e:
+              print(f"⚠️  app/build.gradle.kts: {e}")
+          PYEOF
+
+      - name: Set minSdk to 24
+        run: |
+          python3 << 'PYEOF'
+          import re
+
+          try:
+              with open('android/app/build.gradle.kts', 'r') as f:
+                  content = f.read()
+
+              # Replace flutter.minSdkVersion with 24 for llamadart compatibility
+              updated = re.sub(
+                  r'minSdk\s*=\s*flutter\.minSdkVersion',
+                  'minSdk = 24',
+                  content
+              )
+              updated = re.sub(
+                  r'minSdkVersion\s+flutter\.minSdkVersion',
+                  'minSdkVersion 24',
+                  updated
+              )
+
+              with open('android/app/build.gradle.kts', 'w') as f:
+                  f.write(updated)
+              print("✅ minSdk set to 24")
+          except Exception as e:
+              print(f"⚠️  minSdk fix: {e}")
+          PYEOF
 
       - name: Build Release APK
         run: flutter build apk --release --no-tree-shake-icons

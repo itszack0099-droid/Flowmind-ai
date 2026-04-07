@@ -1,0 +1,28 @@
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo '📱 FlowMind AI - Flutter Android App' && echo '🤖 Local LLM powered by llamadart (no Groq)' && echo '🏗️  Build APK via GitHub Actions (push to main branch)' && echo '📥 Download APK from GitHub Actions → Artifacts tab' && tail -f /dev/null"
+
+[workflows.workflow.metadata]
+outputType = "console"

@@ -56,8 +56,12 @@ Key features of the workflow:
 ## Environment Variables
 - `SUPABASE_URL` — hardcoded in main.dart
 - `SUPABASE_ANON_KEY` — hardcoded in main.dart
-- `GROQ_API_KEY` — for AI chat features
 - `GITHUB_TOKEN` — Replit secret for pushing to GitHub
+
+## AI Architecture
+- **No Groq**: All AI processing is handled locally on-device via llamadart
+- **Local LLM**: Qwen2.5-0.5B-Instruct (GGUF format, ~380MB) downloaded once from HuggingFace
+- **Offline after download**: No cloud AI calls at runtime
 
 ## Key Fixes Applied
 1. **pubspec.yaml SDK constraint**: Changed `>=3.10.7` to `>=3.5.0` (Dart 3.10.7 doesn't exist; Flutter 3.27.0 ships Dart 3.6.0)
@@ -66,3 +70,5 @@ Key features of the workflow:
 4. **applicationId mismatch**: Fixed `com.example.flowmind` → `com.flowmind.flowmind` to match google-services.json
 5. **google-services.json**: Added to `android/app/` directory (required by firebase_core)
 6. **Gradle**: Added `com.google.gms.google-services` plugin (required by firebase_core)
+7. **Groq removed**: Removed all GROQ_API_KEY references from docs; app uses local LLM only
+8. **Build workflow**: Improved CI to copy google-services.json, configure google-services plugin, and set minSdk=24

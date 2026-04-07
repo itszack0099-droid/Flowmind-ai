@@ -70,7 +70,6 @@ Every time you push to `main` branch:
 ## 🔑 Environment Variables
 Create a `.env` file in root:
 ```
-GROQ_API_KEY=your_groq_api_key
 SUPABASE_URL=your_supabase_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
