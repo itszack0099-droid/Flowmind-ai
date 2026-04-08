@@ -139,86 +139,112 @@ class _ModelDownloadScreenState extends State<ModelDownloadScreen>
             const SizedBox(height: 8),
             Text(
               "Qwen2.5-0.5B · Fully Offline · On-Device",
-              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.deepPurpleAccent),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _status,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(fontSize: 15, color: Colors.white70, height: 1.5),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                color: Colors.deepPurpleAccent,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             const SizedBox(height: 30),
 
+            _buildInfoCard(),
+            const SizedBox(height: 24),
+
+            Text(
+              _status,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 15,
+                color: Colors.white70,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 20),
+
             if (_isDownloading) ...[
               LinearProgressIndicator(
-                value: _downloadProgress > 0 ? _downloadProgress : null,
+                value: _downloadProgress,
+                minHeight: 10,
                 backgroundColor: Colors.white12,
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.deepPurpleAccent),
-                minHeight: 8,
-                borderRadius: BorderRadius.circular(4),
+                color: Colors.deepPurpleAccent,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Text(
                 "${(_downloadProgress * 100).toStringAsFixed(1)}%",
-                style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.white54),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
+              const SizedBox(height: 20),
             ],
 
-            if (_isLoading)
-              const CircularProgressIndicator(color: Colors.deepPurpleAccent),
-
-            if (_isReady)
-              const Icon(Icons.check_circle, color: Colors.green, size: 60),
-
-            if (!_isDownloading && !_isLoading && !_isReady) ...[
-              const SizedBox(height: 10),
-
-              if (!_modelExists) ...[
-                _buildInfoCard(),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: _downloadModel,
-                  icon: const Icon(Icons.download),
-                  label: const Text(
-                    "Download Model (~400 MB)",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurpleAccent,
-                    minimumSize: const Size(double.infinity, 56),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            if (!_isDownloading && !_isLoading) ...[
+              if (!_modelExists)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _downloadModel,
+                    icon: const Icon(Icons.download),
+                    label: const Text("Download Model (~400 MB)"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepPurpleAccent,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      textStyle: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
-              ],
-
               if (_modelExists) ...[
-                ElevatedButton.icon(
-                  onPressed: _loadModel,
-                  icon: const Icon(Icons.bolt),
-                  label: const Text(
-                    "Load Model & Start AI",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    minimumSize: const Size(double.infinity, 56),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _loadModel,
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text("Load Model"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      textStyle: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                TextButton.icon(
-                  onPressed: _downloadModel,
-                  icon: const Icon(Icons.refresh, color: Colors.white38, size: 16),
-                  label: const Text("Re-download model", style: TextStyle(color: Colors.white38, fontSize: 13)),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _downloadModel,
+                    icon: const Icon(Icons.refresh, color: Colors.white54),
+                    label: const Text(
+                      "Re-download Model",
+                      style: TextStyle(color: Colors.white54),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white24),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
                 ),
               ],
-
-              const SizedBox(height: 14),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Skip for now", style: TextStyle(color: Colors.white38)),
-              ),
             ],
+
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: CircularProgressIndicator(color: Colors.deepPurpleAccent),
+              ),
+
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Skip for now", style: TextStyle(color: Colors.white38)),
+            ),
 
             const SizedBox(height: 40),
           ],
@@ -248,7 +274,7 @@ class _ModelDownloadScreenState extends State<ModelDownloadScreen>
           ),
           const SizedBox(height: 10),
           Text(
-            "• Download once (~400 MB Wi-Fi recommended)\n"
+            "• Download once (~400 MB, Wi-Fi recommended)\n"
             "• Model: Qwen2.5-0.5B Q4_K_M GGUF\n"
             "• Stored privately on your device\n"
             "• Works 100% offline after download\n"
