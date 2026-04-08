@@ -13,16 +13,15 @@ class ModelDownloadScreen extends StatefulWidget {
 
 class _ModelDownloadScreenState extends State<ModelDownloadScreen>
     with TickerProviderStateMixin {
-  String _status = "Checking local AI connection...";
-  bool _isChecking = false;
-  bool _isConnected = false;
+  String _status = "Checking for downloaded model...";
+  bool _isDownloading = false;
+  bool _isLoading = false;
+  bool _isReady = false;
+  bool _modelExists = false;
+  double _downloadProgress = 0.0;
 
   late AnimationController _robotController;
   final LocalLLMService _llmService = LocalLLMService();
-  final TextEditingController _urlController =
-      TextEditingController(text: 'http://10.0.2.2:11434');
-  final TextEditingController _modelController =
-      TextEditingController(text: 'qwen2.5:0.5b');
 
   @override
   void initState() {
@@ -31,53 +30,84 @@ class _ModelDownloadScreenState extends State<ModelDownloadScreen>
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     )..repeat(reverse: true);
-    _checkConnection();
+    _checkModelExists();
   }
 
-  Future<void> _checkConnection() async {
+  Future<void> _checkModelExists() async {
+    final exists = await ModelDownloader.isModelDownloaded();
+    if (!mounted) return;
     setState(() {
-      _isChecking = true;
-      _status = "Checking local AI connection...";
+      _modelExists = exists;
+      _status = exists
+          ? "Model found! Tap 'Load Model' to start AI."
+          : "Qwen2.5-0.5B model not found.\nDownload once (~400 MB) for fully offline AI.";
+    });
+  }
+
+  Future<void> _downloadModel() async {
+    setState(() {
+      _isDownloading = true;
+      _downloadProgress = 0.0;
+      _status = "Starting download...";
     });
 
-    final connected = await ModelDownloader.checkOllamaConnectivity(
-      baseUrl: _urlController.text.trim(),
+    final path = await ModelDownloader.downloadModel(
+      onProgress: (progress) {
+        if (mounted) setState(() => _downloadProgress = progress);
+      },
+      onStatus: (status) {
+        if (mounted) setState(() => _status = status);
+      },
     );
 
     if (!mounted) return;
 
-    if (connected) {
-      await _llmService.saveSettings(
-          _urlController.text.trim(), _modelController.text.trim());
-      await _llmService.initializeModel();
+    if (path != null) {
       setState(() {
-        _isConnected = true;
-        _status = "✅ Local AI connected!";
-        _isChecking = false;
+        _isDownloading = false;
+        _modelExists = true;
+        _status = "✅ Download complete! Tap 'Load Model' to start.";
       });
-      await Future.delayed(const Duration(milliseconds: 800));
-      if (mounted) Navigator.pop(context);
     } else {
       setState(() {
-        _isConnected = false;
-        _isChecking = false;
-        _status =
-            "Could not connect to local AI.\nMake sure Ollama is running.";
+        _isDownloading = false;
+        _status = "Download failed. Check your internet and try again.";
       });
     }
   }
 
-  Future<void> _saveAndConnect() async {
-    await _llmService.saveSettings(
-        _urlController.text.trim(), _modelController.text.trim());
-    await _checkConnection();
+  Future<void> _loadModel() async {
+    setState(() {
+      _isLoading = true;
+      _status = "Loading model into memory...";
+    });
+
+    await _llmService.initializeModel(
+      onStatus: (s) {
+        if (mounted) setState(() => _status = s);
+      },
+    );
+
+    if (!mounted) return;
+
+    if (_llmService.isInitialized) {
+      setState(() {
+        _isReady = true;
+        _isLoading = false;
+      });
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (mounted) Navigator.pop(context);
+    } else {
+      setState(() {
+        _isLoading = false;
+        _status = "Failed to load model. Try re-downloading.";
+      });
+    }
   }
 
   @override
   void dispose() {
     _robotController.dispose();
-    _urlController.dispose();
-    _modelController.dispose();
     super.dispose();
   }
 
@@ -90,53 +120,105 @@ class _ModelDownloadScreenState extends State<ModelDownloadScreen>
         child: Column(
           children: [
             const SizedBox(height: 60),
-            const Icon(Icons.smart_toy, size: 100, color: Colors.blue),
+            AnimatedBuilder(
+              animation: _robotController,
+              builder: (context, child) => Transform.translate(
+                offset: Offset(0, _robotController.value * 8 - 4),
+                child: const Icon(Icons.memory, size: 100, color: Colors.deepPurpleAccent),
+              ),
+            ),
             const SizedBox(height: 20),
             Text(
               "FlowMind Local AI",
               style: GoogleFonts.plusJakartaSans(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white),
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+            Text(
+              "Qwen2.5-0.5B · Fully Offline · On-Device",
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.deepPurpleAccent),
+            ),
+            const SizedBox(height: 16),
             Text(
               _status,
               textAlign: TextAlign.center,
-              style:
-                  GoogleFonts.plusJakartaSans(fontSize: 16, color: Colors.white70),
+              style: GoogleFonts.plusJakartaSans(fontSize: 15, color: Colors.white70, height: 1.5),
             ),
             const SizedBox(height: 30),
 
-            if (_isChecking)
-              const CircularProgressIndicator(color: Colors.blue),
-
-            if (!_isChecking && !_isConnected) ...[
-              _buildSetupCard(),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: _saveAndConnect,
-                icon: const Icon(Icons.wifi_find),
-                label: const Text("Connect to Ollama",
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  minimumSize: const Size(double.infinity, 56),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                ),
+            if (_isDownloading) ...[
+              LinearProgressIndicator(
+                value: _downloadProgress > 0 ? _downloadProgress : null,
+                backgroundColor: Colors.white12,
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.deepPurpleAccent),
+                minHeight: 8,
+                borderRadius: BorderRadius.circular(4),
               ),
-              const SizedBox(height: 14),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Skip for now",
-                    style: TextStyle(color: Colors.white54)),
+              const SizedBox(height: 12),
+              Text(
+                "${(_downloadProgress * 100).toStringAsFixed(1)}%",
+                style: GoogleFonts.plusJakartaSans(fontSize: 14, color: Colors.white54),
               ),
             ],
 
-            if (_isConnected)
+            if (_isLoading)
+              const CircularProgressIndicator(color: Colors.deepPurpleAccent),
+
+            if (_isReady)
               const Icon(Icons.check_circle, color: Colors.green, size: 60),
+
+            if (!_isDownloading && !_isLoading && !_isReady) ...[
+              const SizedBox(height: 10),
+
+              if (!_modelExists) ...[
+                _buildInfoCard(),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: _downloadModel,
+                  icon: const Icon(Icons.download),
+                  label: const Text(
+                    "Download Model (~400 MB)",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurpleAccent,
+                    minimumSize: const Size(double.infinity, 56),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ],
+
+              if (_modelExists) ...[
+                ElevatedButton.icon(
+                  onPressed: _loadModel,
+                  icon: const Icon(Icons.bolt),
+                  label: const Text(
+                    "Load Model & Start AI",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    minimumSize: const Size(double.infinity, 56),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  onPressed: _downloadModel,
+                  icon: const Icon(Icons.refresh, color: Colors.white38, size: 16),
+                  label: const Text("Re-download model", style: TextStyle(color: Colors.white38, fontSize: 13)),
+                ),
+              ],
+
+              const SizedBox(height: 14),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Skip for now", style: TextStyle(color: Colors.white38)),
+              ),
+            ],
 
             const SizedBox(height: 40),
           ],
@@ -145,7 +227,7 @@ class _ModelDownloadScreenState extends State<ModelDownloadScreen>
     );
   }
 
-  Widget _buildSetupCard() {
+  Widget _buildInfoCard() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -156,57 +238,25 @@ class _ModelDownloadScreenState extends State<ModelDownloadScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Setup Instructions",
-              style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white)),
-          const SizedBox(height: 10),
           Text(
-            "1. Install Ollama on your PC/Mac\n"
-            "2. Run: ollama pull qwen2.5:0.5b\n"
-            "3. Start: ollama serve\n"
-            "4. Connect phone to same WiFi\n"
-            "5. Enter your machine's IP below",
+            "Fully Offline AI",
             style: GoogleFonts.plusJakartaSans(
-                fontSize: 14, color: Colors.white70, height: 1.6),
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _urlController,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              labelText: "Ollama URL",
-              labelStyle: const TextStyle(color: Colors.white54),
-              hintText: "http://192.168.1.x:11434",
-              hintStyle: const TextStyle(color: Colors.white30),
-              filled: true,
-              fillColor: const Color(0xFF0F0F1E),
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Colors.white24),
-              ),
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _modelController,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              labelText: "Model name",
-              labelStyle: const TextStyle(color: Colors.white54),
-              hintText: "qwen2.5:0.5b",
-              hintStyle: const TextStyle(color: Colors.white30),
-              filled: true,
-              fillColor: const Color(0xFF0F0F1E),
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Colors.white24),
-              ),
+          const SizedBox(height: 10),
+          Text(
+            "• Download once (~400 MB Wi-Fi recommended)\n"
+            "• Model: Qwen2.5-0.5B Q4_K_M GGUF\n"
+            "• Stored privately on your device\n"
+            "• Works 100% offline after download\n"
+            "• No data sent to any server",
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              color: Colors.white70,
+              height: 1.7,
             ),
           ),
         ],

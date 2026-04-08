@@ -8,7 +8,6 @@ import 'local_llm_service.dart';
 class SummarizerService {
   static final LocalLLMService _llm = LocalLLMService();
 
-  // Extract text from any file
   static Future<String> extractTextFromFile(File file) async {
     final extension = file.path.split('.').last.toLowerCase();
 
@@ -33,7 +32,7 @@ class SummarizerService {
     String fullText = '';
     for (int i = 1; i <= document.pagesCount; i++) {
       final page = await document.getPage(i);
-      final pageText = await page.text;           // Correct method in pdfx
+      final pageText = await page.text;
       fullText += pageText + '\n';
       await page.close();
     }
@@ -46,7 +45,6 @@ class SummarizerService {
     return await DocxToText(bytes).parse();
   }
 
-  // YouTube transcript
   static Future<String> getYouTubeTranscript(String videoId) async {
     try {
       final transcript = await YoutubeTranscriptApi().getTranscript(videoId);
@@ -56,7 +54,6 @@ class SummarizerService {
     }
   }
 
-  // Process with AI (summarize, explain, quiz, etc.)
   static Future<String> processWithAI(String text, String action) async {
     String prompt = '';
 

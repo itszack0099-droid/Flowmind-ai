@@ -74,7 +74,8 @@ Key features of the workflow:
 6. **Gradle**: Added `com.google.gms.google-services` plugin (required by firebase_core)
 7. **Groq removed**: Removed all GROQ_API_KEY references from docs; app uses local LLM only
 8. **Build workflow**: Improved CI to copy google-services.json, configure google-services plugin, and set minSdk=24
-9. **llamadart removed**: llamadart >=0.2.0 required SDK >=3.10.7 (non-existent), breaking pub get; replaced with pure-Dart Ollama HTTP client — no native deps, builds with any Dart 3.5+
-10. **LocalLLMService rewritten**: Now uses Ollama HTTP API; model_downloader checks connectivity; model_download_screen shows Ollama setup UI
+9. **LocalLLM architecture**: LocalLLMService wraps llamadart Llama class; model downloaded once to getApplicationDocumentsDirectory, then loaded for inference; 100% offline after first download
+10. **ModelDownloader**: Streams Qwen2.5-0.5B Q4_K_M GGUF from HuggingFace with progress tracking; ModelDownloadScreen shows download bar, then Load Model button
 11. **firebase_core removed**: Not used in any Dart code (no Firebase.initializeApp); removal eliminates google-services Gradle plugin complexity that broke builds on Flutter 3.41.x
 12. **Workflow simplified**: Replaced fragile temp-project + Python Gradle scripts with `flutter create --platforms=android --no-pub .` which always generates a compatible android folder for whatever Flutter version CI uses
+13. **llamadart restored**: Re-added llamadart ^0.6.10 for fully on-device LLM inference; LocalLLMService uses Llama class from llamadart (llama.cpp) with Qwen2.5-0.5B Q4_K_M GGUF model; model downloaded once (~400 MB) from HuggingFace to getApplicationDocumentsDirectory, then 100% offline; ModelDownloader handles streaming HTTP download with progress; no Ollama, no server, no cloud API
