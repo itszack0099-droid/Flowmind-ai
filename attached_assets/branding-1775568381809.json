@@ -1,0 +1,118 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "Google Sans Text",
+      "role": "body"
+    },
+    {
+      "family": "Google Sans",
+      "role": "heading"
+    },
+    {
+      "family": "Roboto",
+      "role": "body"
+    }
+  ],
+  "colors": {
+    "primary": "#27323A",
+    "secondary": "#1F3044",
+    "accent": "#1C2834",
+    "background": "#FFFFFF",
+    "textPrimary": "#1C2834",
+    "link": "#1C2834"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Google Sans Text",
+      "heading": "Google Sans"
+    },
+    "fontStacks": {
+      "heading": [
+        "Google Sans Text",
+        "Google Sans",
+        "Roboto",
+        "sans-serif"
+      ],
+      "body": [
+        "Google Sans Text",
+        "Google Sans",
+        "Roboto",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "Google Sans Text",
+        "Google Sans",
+        "Roboto",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "16px",
+      "h2": "24px",
+      "body": "16px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 4,
+    "borderRadius": "4px"
+  },
+  "components": {
+    "input": {
+      "background": "#35404D",
+      "textColor": "#FFFFFF",
+      "borderColor": null,
+      "borderRadius": "24px",
+      "borderRadiusCorners": {
+        "topLeft": "24px",
+        "topRight": "24px",
+        "bottomRight": "24px",
+        "bottomLeft": "24px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "logo": "https://pub.dev/static/hash-qdshfgq0/img/pub-dev-logo.svg",
+    "favicon": "https://pub.dev/favicon.ico?hash=nk4nss8c7444fg0chird9erqef2vkhb8",
+    "ogImage": "https://pub.dev/static/hash-qdshfgq0/img/pub-dev-icon-cover-image.png",
+    "logoHref": "File saved at: attached_assets/logoHref.html",
+    "logoAlt": "Go to the landing page of pub.dev"
+  },
+  "__llm_logo_reasoning": {
+    "selectedIndex": 0,
+    "reasoning": "Selected #0 because it is the only candidate, is visible, medium-sized, and links to the homepage, which aligns with the brand inferred from the URL and page context.",
+    "confidence": 0.9,
+    "source": "llm"
+  },
+  "personality": {
+    "tone": "professional",
+    "energy": "low",
+    "targetAudience": "developers"
+  },
+  "designSystem": {
+    "framework": "custom",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 0,
+    "colors": 0.9,
+    "overall": 0.45
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": true,
+      "llmSucceeded": true,
+      "finalSource": "llm",
+      "rawLogoSelection": {
+        "selectedLogoIndex": 0,
+        "selectedLogoReasoning": "Selected #0 because it is the only candidate, is visible, medium-sized, and links to the homepage, which aligns with the brand inferred from the URL and page context.",
+        "confidence": 0.9
+      }
+    },
+    "buttonClassification": {
+      "llmCalled": false,
+      "llmSucceeded": false
+    }
+  }
+}
