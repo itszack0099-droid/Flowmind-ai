@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'dart:async';   // ← Yeh line zaroori hai (Timer ke liye)
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,7 +60,7 @@ class _CandleFocusScreenState extends State<CandleFocusScreen> with TickerProvid
   }
 
   Future<void> _saveSession() async {
-    final minutes = _totalSeconds \~/ 60;
+    final minutes = _totalSeconds ~/ 60;
     if (minutes < 1) return;
 
     final xp = minutes * 2;
@@ -75,7 +75,7 @@ class _CandleFocusScreenState extends State<CandleFocusScreen> with TickerProvid
   }
 
   Future<void> _getAISuggestion() async {
-    final prompt = "You are a deep focus mentor. User has been focusing for ${_totalSeconds \~/ 60} minutes. Give a short, motivating one-line message.";
+    final prompt = "You are a deep focus mentor. User has been focusing for ${_totalSeconds ~/ 60} minutes. Give a short, motivating one-line message.";
     try {
       final response = await _llm.getResponse(prompt);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(response.trim())));
@@ -92,7 +92,7 @@ class _CandleFocusScreenState extends State<CandleFocusScreen> with TickerProvid
 
   @override
   Widget build(BuildContext context) {
-    final minutes = _totalSeconds \~/ 60;
+    final minutes = _totalSeconds ~/ 60;
     final seconds = _totalSeconds % 60;
 
     return Scaffold(
@@ -131,7 +131,7 @@ class _CandleFocusScreenState extends State<CandleFocusScreen> with TickerProvid
             ),
 
             Text(
-              "\( {minutes.toString().padLeft(2, '0')}: \){seconds.toString().padLeft(2, '0')}",
+              "${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}",
               style: GoogleFonts.plusJakartaSans(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white),
             ),
 
