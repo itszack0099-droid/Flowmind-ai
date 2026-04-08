@@ -37,8 +37,11 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
 
-      - name: Generate Android Folder
+      - name: Regenerate Android Folder
         run: |
+          # Always regenerate so the android folder matches the installed Flutter version.
+          # This avoids "unsupported Gradle project" errors from stale/incompatible files.
+          rm -rf android
           flutter create \
             --platforms=android \
             --org=com.flowmind \
@@ -46,9 +49,8 @@ jobs:
             --no-pub \
             .
           chmod +x android/gradlew
-          echo "✅ Android folder generated"
+          echo "✅ Android folder regenerated for Flutter $(flutter --version | head -1)"
           ls -la android/
-          ls -la android/app/
 
       - name: Build Release APK
         run: flutter build apk --release --no-tree-shake-icons
