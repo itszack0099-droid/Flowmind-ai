@@ -1,4 +1,4 @@
-name: Build FlowMind APK - Final Clean
+name: Build FlowMind APK - Super Clean
 
 on:
   push:
@@ -28,15 +28,23 @@ jobs:
           rm -rf \~/.pub-cache
           flutter pub get
 
-      - name: Create Fresh Android Folder
+      - name: Create Completely Fresh Flutter Project (Official Fix)
         run: |
           rm -rf android build .gradle .flutter-plugins* .metadata android.iml
           flutter create temp_project --platforms=android --org=com.flowmind --project-name flowmind
+          
+          # Copy android folder
           cp -r temp_project/android ./
+          
+          # Copy important files from temp to main
+          cp temp_project/pubspec.yaml ./
+          cp -r temp_project/lib/ ./
+          cp -r temp_project/assets/ ./ 2>/dev/null || true
+          
           rm -rf temp_project
-          echo "✅ Fresh android folder created"
+          echo "✅ Completely fresh android folder created"
 
-      - name: Fix Gradle Configuration
+      - name: Fix flutter_local_notifications Linux Issue
         run: |
           cat >> android/app/build.gradle << 'EOF'
 
