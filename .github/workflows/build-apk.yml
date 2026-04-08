@@ -20,7 +20,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter (latest stable)
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
@@ -34,23 +34,19 @@ jobs:
       - name: Show Flutter version
         run: flutter --version
 
-      - name: Get Dependencies
-        run: flutter pub get
-
-      - name: Regenerate Android Folder
+      - name: Install Dependencies
         run: |
-          # Always regenerate so the android folder matches the installed Flutter version.
-          # This avoids "unsupported Gradle project" errors from stale/incompatible files.
-          rm -rf android
-          flutter create \
-            --platforms=android \
-            --org=com.flowmind \
-            --project-name=flowmind \
-            --no-pub \
-            .
-          chmod +x android/gradlew
-          echo "✅ Android folder regenerated for Flutter $(flutter --version | head -1)"
-          ls -la android/
+          flutter clean
+          rm -f pubspec.lock
+          flutter pub get
+
+      - name: Write local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+          echo "flutter.sdk=$(which flutter | xargs dirname | xargs dirname)" >> android/local.properties
+
+      - name: Make gradlew Executable
+        run: chmod +x android/gradlew
 
       - name: Build Release APK
         run: flutter build apk --release --no-tree-shake-icons
