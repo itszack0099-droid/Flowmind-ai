@@ -1,86 +1,73 @@
-import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:llamadart/llamadart.dart';
+import 'package:path_provider/path_provider.dart';
 
 class LocalLLMService {
-  static const String _groqBaseUrl = 'https://api.groq.com/openai/v1/chat/completions';
-  static const String _groqModel = 'llama3-8b-8192';
-  static const String _prefKey = 'groq_api_key';
-
-  String? _apiKey;
+  LlamaEngine? _engine;
   bool _isInitialized = false;
+
+  static const String _modelFileName = 'qwen2.5-0.5b-q4_k_m.gguf';
+  static const String _systemPrompt =
+      'You are FlowMind AI, a personal AI mentor for Gen Z students. '
+      'Be concise, encouraging, and helpful. '
+      'Keep responses under 150 words unless more detail is requested.';
 
   Future<void> initializeModel({
     Function(double)? onProgress,
     Function(String)? onStatus,
   }) async {
     try {
-      if (onStatus != null) onStatus("Loading AI configuration...");
-      final prefs = await SharedPreferences.getInstance();
-      _apiKey = prefs.getString(_prefKey) ?? '';
+      onStatus?.call("Checking model file...");
+      final dir = await getApplicationDocumentsDirectory();
+      final modelPath = '${dir.path}/$_modelFileName';
+
+      if (!await File(modelPath).exists()) {
+        onStatus?.call("Model not found. Please download it first.");
+        return;
+      }
+
+      onStatus?.call("Loading local AI model...");
+      _engine = LlamaEngine(LlamaBackend());
+      await _engine!.loadModel(modelPath);
       _isInitialized = true;
-      if (onStatus != null) onStatus("✅ AI ready");
+      onStatus?.call("AI ready (offline mode)");
     } catch (e) {
-      debugPrint("LocalLLMService init error: $e");
-      _isInitialized = true;
+      debugPrint("LLM init error: $e");
+      _engine = null;
+      _isInitialized = false;
+      onStatus?.call("Failed to load model. Please re-download.");
     }
   }
 
   Future<String> getResponse(String prompt) async {
-    if (_apiKey == null || _apiKey!.isEmpty) {
-      return "🔑 AI not configured. Please add your Groq API key in Profile → Settings.";
+    if (_engine == null || !_isInitialized) {
+      return "AI model not loaded. Please download the model first from the home screen.";
     }
+
+    final formatted = '<|im_start|>system\n$_systemPrompt\n<|im_end|>\n'
+        '<|im_start|>user\n$prompt\n<|im_end|>\n'
+        '<|im_start|>assistant\n';
 
     try {
-      final response = await http.post(
-        Uri.parse(_groqBaseUrl),
-        headers: {
-          'Authorization': 'Bearer $_apiKey',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'model': _groqModel,
-          'messages': [
-            {
-              'role': 'system',
-              'content': 'You are FlowMind AI, a personal AI mentor for students. Be concise, encouraging, and helpful.'
-            },
-            {'role': 'user', 'content': prompt}
-          ],
-          'max_tokens': 1024,
-          'temperature': 0.7,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['choices'][0]['message']['content'] as String;
-      } else if (response.statusCode == 401) {
-        return "❌ Invalid API key. Please check your Groq API key in Profile → Settings.";
-      } else {
-        debugPrint("Groq API error: ${response.statusCode} ${response.body}");
-        return "Sorry, I couldn't generate a response right now. Please try again.";
+      final buffer = StringBuffer();
+      await for (final token in _engine!.generate(formatted)) {
+        buffer.write(token);
       }
+      final result = buffer.toString().trim();
+      return result.isEmpty
+          ? "I couldn't generate a response. Please try again."
+          : result;
     } catch (e) {
-      debugPrint("LLM Response Error: $e");
-      return "Sorry, I couldn't reach the AI service. Check your internet connection.";
+      debugPrint("LLM getResponse error: $e");
+      return "Sorry, something went wrong. Please try again.";
     }
-  }
-
-  static Future<void> saveApiKey(String apiKey) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefKey, apiKey);
-  }
-
-  static Future<String> getStoredApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_prefKey) ?? '';
   }
 
   void dispose() {
+    _engine?.dispose().catchError((e) => debugPrint("LLM dispose error: $e"));
+    _engine = null;
     _isInitialized = false;
-    _apiKey = null;
   }
 
   bool get isInitialized => _isInitialized;
