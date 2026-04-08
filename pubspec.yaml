@@ -28,7 +28,6 @@ dependencies:
   youtube_transcript_api: ^1.0.0
   http: ^1.2.2
   http_parser: ^4.0.2
-  firebase_core: ^2.30.0
 
 dependency_overrides:
   archive: ^4.0.7

@@ -76,3 +76,5 @@ Key features of the workflow:
 8. **Build workflow**: Improved CI to copy google-services.json, configure google-services plugin, and set minSdk=24
 9. **llamadart removed**: llamadart >=0.2.0 required SDK >=3.10.7 (non-existent), breaking pub get; replaced with pure-Dart Ollama HTTP client — no native deps, builds with any Dart 3.5+
 10. **LocalLLMService rewritten**: Now uses Ollama HTTP API; model_downloader checks connectivity; model_download_screen shows Ollama setup UI
+11. **firebase_core removed**: Not used in any Dart code (no Firebase.initializeApp); removal eliminates google-services Gradle plugin complexity that broke builds on Flutter 3.41.x
+12. **Workflow simplified**: Replaced fragile temp-project + Python Gradle scripts with `flutter create --platforms=android --no-pub .` which always generates a compatible android folder for whatever Flutter version CI uses
