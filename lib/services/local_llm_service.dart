@@ -1,72 +1,86 @@
-import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:llamadart/llamadart.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalLLMService {
-  Llama? _llama;
+  static const String _groqBaseUrl = 'https://api.groq.com/openai/v1/chat/completions';
+  static const String _groqModel = 'llama3-8b-8192';
+  static const String _prefKey = 'groq_api_key';
+
+  String? _apiKey;
   bool _isInitialized = false;
-
-  static const String modelFileName = 'qwen2.5-0.5b-q4_k_m.gguf';
-
-  static Future<String> get modelPath async {
-    final dir = await getApplicationDocumentsDirectory();
-    return '${dir.path}/$modelFileName';
-  }
-
-  static Future<bool> isModelDownloaded() async {
-    final path = await modelPath;
-    return File(path).existsSync();
-  }
 
   Future<void> initializeModel({
     Function(double)? onProgress,
     Function(String)? onStatus,
   }) async {
-    if (_isInitialized) return;
-
     try {
-      final path = await modelPath;
-      if (!File(path).existsSync()) {
-        onStatus?.call("⚠️ Model not downloaded yet.");
-        return;
-      }
-
-      onStatus?.call("Loading AI model into memory...");
-      _llama = Llama(path, nCtx: 512, nBatch: 512, nGpuLayers: 0);
+      if (onStatus != null) onStatus("Loading AI configuration...");
+      final prefs = await SharedPreferences.getInstance();
+      _apiKey = prefs.getString(_prefKey) ?? '';
       _isInitialized = true;
-      onStatus?.call("✅ AI model loaded and ready!");
+      if (onStatus != null) onStatus("✅ AI ready");
     } catch (e) {
-      debugPrint("LocalLLM init error: $e");
-      onStatus?.call("Failed to load model: $e");
+      debugPrint("LocalLLMService init error: $e");
+      _isInitialized = true;
     }
   }
 
   Future<String> getResponse(String prompt) async {
-    if (!_isInitialized || _llama == null) {
-      return "AI model not loaded. Please download and load the model from the setup screen.";
+    if (_apiKey == null || _apiKey!.isEmpty) {
+      return "🔑 AI not configured. Please add your Groq API key in Profile → Settings.";
     }
 
     try {
-      final result = _llama!.generate(prompt);
-      return result.trim();
+      final response = await http.post(
+        Uri.parse(_groqBaseUrl),
+        headers: {
+          'Authorization': 'Bearer $_apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'model': _groqModel,
+          'messages': [
+            {
+              'role': 'system',
+              'content': 'You are FlowMind AI, a personal AI mentor for students. Be concise, encouraging, and helpful.'
+            },
+            {'role': 'user', 'content': prompt}
+          ],
+          'max_tokens': 1024,
+          'temperature': 0.7,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['choices'][0]['message']['content'] as String;
+      } else if (response.statusCode == 401) {
+        return "❌ Invalid API key. Please check your Groq API key in Profile → Settings.";
+      } else {
+        debugPrint("Groq API error: ${response.statusCode} ${response.body}");
+        return "Sorry, I couldn't generate a response right now. Please try again.";
+      }
     } catch (e) {
       debugPrint("LLM Response Error: $e");
-      return "AI processing failed. Please try again.";
+      return "Sorry, I couldn't reach the AI service. Check your internet connection.";
     }
   }
 
-  Stream<String> getResponseStream(String prompt) {
-    if (!_isInitialized || _llama == null) {
-      return Stream.value("AI model not loaded. Please download and load the model.");
-    }
-    return _llama!.generateStream(prompt);
+  static Future<void> saveApiKey(String apiKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefKey, apiKey);
+  }
+
+  static Future<String> getStoredApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefKey) ?? '';
   }
 
   void dispose() {
-    _llama?.dispose();
-    _llama = null;
     _isInitialized = false;
+    _apiKey = null;
   }
 
   bool get isInitialized => _isInitialized;
